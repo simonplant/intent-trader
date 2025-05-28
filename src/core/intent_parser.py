@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from typing import Optional
+from typing import Dict, Any, Optional
 
 
 @dataclass
@@ -16,6 +16,11 @@ class Intent:
     side: Optional[str] = None  # 'buy' or 'sell'
     order_type: Optional[str] = None  # 'market', 'limit', 'stop'
     confidence: float = 0.0
+    parameters: Dict[str, Any] = None
+
+    def __post_init__(self):
+        if self.parameters is None:
+            self.parameters = {}
 
 
 class IntentParser:
@@ -27,6 +32,7 @@ class IntentParser:
             "sell": [r"sell", r"short", r"exit"],
             "check": [r"check", r"status", r"position"],
             "cancel": [r"cancel", r"stop", r"abort"],
+            "plan": [r"plan", r"strategy", r"analyze"],
         }
 
     def parse(self, text: str) -> Intent:
@@ -52,10 +58,20 @@ class IntentParser:
         prices = re.findall(r"\$?(\d+\.?\d*)", text)
         price = float(prices[0]) if prices and float(prices[0]) > 1 else None
 
+        # Extract parameters
+        parameters = {}
+        
+        # Check for specific sources
+        if "dp transcript" in text_lower:
+            parameters["source"] = "dp_transcript"
+        elif "transcript" in text_lower:
+            parameters["source"] = "transcript"
+
         return Intent(
             action=action,
             symbol=symbol,
             quantity=quantity,
             price=price,
             confidence=0.8 if action != "unknown" else 0.1,
+            parameters=parameters,
         )

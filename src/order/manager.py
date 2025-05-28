@@ -103,8 +103,8 @@ class OrderParameters(BaseModel):
     @field_validator("order_type")
     @classmethod
     def validate_order_type(cls, v):
-        if v not in ["market", "limit", "stop"]:
-            raise ValueError("Order type must be 'market', 'limit', or 'stop'")
+        if v not in ["market", "limit", "stop", "stop_limit"]:
+            raise ValueError("Order type must be 'market', 'limit', 'stop', or 'stop_limit'")
         return v
 
     @field_validator("time_in_force")
@@ -273,6 +273,29 @@ class OrderManager:
         Returns:
             Optional[Order]: The canceled order if found, None otherwise
         """
+        # Handle string order_id
+        if isinstance(order_id, str):
+            # Try to find the order by string ID in self.orders
+            if order_id in self.orders:
+                order = self.orders[order_id]
+                if order.status not in ["pending", "partially_filled"]:
+                    return {
+                        "status": "error",
+                        "message": f"Cannot cancel order in {order.status} status"
+                    }
+                
+                order.status = "cancelled"
+                order.metadata["cancelled_at"] = datetime.now(UTC)
+                
+                return {
+                    "status": "success",
+                    "message": f"Order {order_id} cancelled",
+                    "data": order.model_dump()
+                }
+            else:
+                return {"status": "error", "message": f"Order {order_id} not found"}
+        
+        # Original UUID-based logic
         order = self._orders.get(order_id)
         if not order:
             return None
@@ -373,8 +396,8 @@ class OrderManager:
 
         return {"status": "success", "data": self.orders[order_id].model_dump()}
 
-    def get_open_orders(self) -> Dict[str, Any]:
-        """Get all open orders"""
+    def get_open_orders_dict(self) -> Dict[str, Any]:
+        """Get all open orders as a dictionary response"""
         open_orders = {
             order_id: order.model_dump()
             for order_id, order in self.orders.items()

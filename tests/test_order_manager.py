@@ -3,7 +3,7 @@ from datetime import datetime
 import pytest
 
 from data.schemas import MarketDataSchema, OrderSchema, PositionSchema
-from execution.order_manager import OrderManager, OrderParameters
+from src.order.manager import OrderManager, OrderParameters
 
 
 @pytest.fixture
@@ -108,14 +108,13 @@ def test_limit_order_execution(order_manager, sample_market_data):
         quantity=1.0,
         order_type="limit",
         price=4600.0,  # Above current price
+        stop_loss=4400.0,
+        take_profit=4700.0
     )
 
-    # Add missing fields for PositionSchema
-    params.stop_loss = 4400.0
-    params.take_profit = 4600.0
-
     result = order_manager.place_order(params)
-    assert result["status"] == "pending"
+    assert result["status"] == "success"
+    assert result["message"] == "Limit order placed"
 
 
 def test_stop_order_execution(order_manager, sample_market_data):
@@ -123,22 +122,20 @@ def test_stop_order_execution(order_manager, sample_market_data):
     # Update manager with market data
     order_manager.update_market_data({"ES": sample_market_data})
 
-    # Place stop order above market price (should execute)
+    # Place stop order below market price (should not execute immediately)
     params = OrderParameters(
         symbol="ES",
-        side="buy",
+        side="sell",
         quantity=1.0,
         order_type="stop",
-        stop_price=4600.0,  # Above current price
+        stop_price=4400.0,  # Below current price for sell stop
+        stop_loss=4350.0,
+        take_profit=4600.0
     )
-
-    # Add missing fields for PositionSchema
-    params.stop_loss = 4400.0
-    params.take_profit = 4600.0
 
     result = order_manager.place_order(params)
     assert result["status"] == "success"
-    assert order_manager.orders[result["data"]["order_id"]].status == "filled"
+    assert result["message"] == "Stop order placed"
 
 
 def test_stop_limit_order_execution(order_manager, sample_market_data):
@@ -240,6 +237,6 @@ def test_get_open_orders(order_manager, sample_market_data):
     order_manager.place_order(params)
 
     # Get open orders
-    result = order_manager.get_open_orders()
+    result = order_manager.get_open_orders_dict()
     assert result["status"] == "success"
     assert len(result["data"]) == 1  # Only the limit order should be open

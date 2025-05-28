@@ -114,7 +114,7 @@ def test_daily_metrics(performance_analyzer, sample_trade_plan, sample_position,
     assert daily_metrics.total_pnl_percent == 3.33
     assert daily_metrics.average_win == 500.0
     assert daily_metrics.average_loss == 0.0
-    assert daily_metrics.profit_factor > 0
+    assert daily_metrics.profit_factor == float('inf')  # No losing trades
 
 
 def test_overall_metrics(performance_analyzer, sample_trade_plan, sample_position, sample_orders):
@@ -133,7 +133,7 @@ def test_overall_metrics(performance_analyzer, sample_trade_plan, sample_positio
     assert overall_metrics.total_pnl_percent == 3.33
     assert overall_metrics.average_win == 500.0
     assert overall_metrics.average_loss == 0.0
-    assert overall_metrics.profit_factor > 0
+    assert overall_metrics.profit_factor == float('inf')  # No losing trades
     assert overall_metrics.max_drawdown >= 0
     assert overall_metrics.sharpe_ratio >= 0
     assert overall_metrics.sortino_ratio >= 0
@@ -154,7 +154,7 @@ def test_symbol_metrics(performance_analyzer, sample_trade_plan, sample_position
     assert symbol_metrics["total_pnl_percent"] == 3.33
     assert symbol_metrics["average_win"] == 500.0
     assert symbol_metrics["average_loss"] == 0.0
-    assert symbol_metrics["profit_factor"] > 0
+    assert symbol_metrics["profit_factor"] == float('inf')  # No losing trades
 
 
 def test_strategy_metrics(performance_analyzer, sample_trade_plan, sample_position, sample_orders):
@@ -172,7 +172,7 @@ def test_strategy_metrics(performance_analyzer, sample_trade_plan, sample_positi
     assert strategy_metrics["total_pnl_percent"] == 3.33
     assert strategy_metrics["average_win"] == 500.0
     assert strategy_metrics["average_loss"] == 0.0
-    assert strategy_metrics["profit_factor"] > 0
+    assert strategy_metrics["profit_factor"] == float('inf')  # No losing trades
 
 
 def test_multiple_trades(performance_analyzer):
@@ -247,7 +247,7 @@ def test_multiple_trades(performance_analyzer):
     assert overall_metrics.total_trades == 3
     assert overall_metrics.winning_trades == 3
     assert overall_metrics.total_pnl == 1500.0
-    assert overall_metrics.total_pnl_percent == 10.0
+    assert abs(overall_metrics.total_pnl_percent - 10.0) < 0.01  # Use approximate equality
 
 
 def test_losing_trade(performance_analyzer):

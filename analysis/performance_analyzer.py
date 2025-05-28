@@ -307,6 +307,10 @@ class PerformanceAnalyzer:
         # Calculate profit factor
         if metrics.average_loss != 0:
             metrics.profit_factor = abs(metrics.average_win / metrics.average_loss)
+        elif metrics.average_win > 0:
+            metrics.profit_factor = float('inf')  # Infinite profit factor when no losses
+        else:
+            metrics.profit_factor = 0.0
 
         # Calculate max drawdown
         metrics.max_drawdown = max(t.max_drawdown for t in metrics.trades)
@@ -314,23 +318,30 @@ class PerformanceAnalyzer:
         # Calculate Sharpe ratio (assuming risk-free rate of 0)
         if len(metrics.trades) > 1:
             returns = [t.pnl_percent for t in metrics.trades]
-            metrics.sharpe_ratio = (
-                sum(returns)
-                / len(returns)
-                / (sum((r - sum(returns) / len(returns)) ** 2 for r in returns) / len(returns))
-                ** 0.5
-            )
+            avg_return = sum(returns) / len(returns)
+            variance = sum((r - avg_return) ** 2 for r in returns) / len(returns)
+            if variance > 0:
+                metrics.sharpe_ratio = avg_return / (variance ** 0.5)
+            else:
+                metrics.sharpe_ratio = 0.0
+        else:
+            metrics.sharpe_ratio = 0.0
 
         # Calculate Sortino ratio
         if len(metrics.trades) > 1:
             returns = [t.pnl_percent for t in metrics.trades]
             downside_returns = [r for r in returns if r < 0]
             if downside_returns:
-                metrics.sortino_ratio = (
-                    sum(returns)
-                    / len(returns)
-                    / (sum(r**2 for r in downside_returns) / len(downside_returns)) ** 0.5
-                )
+                avg_return = sum(returns) / len(returns)
+                downside_variance = sum(r**2 for r in downside_returns) / len(downside_returns)
+                if downside_variance > 0:
+                    metrics.sortino_ratio = avg_return / (downside_variance ** 0.5)
+                else:
+                    metrics.sortino_ratio = 0.0
+            else:
+                metrics.sortino_ratio = float('inf') if sum(returns) > 0 else 0.0
+        else:
+            metrics.sortino_ratio = 0.0
 
     def _update_overall_metrics(self) -> None:
         """Update overall performance metrics"""
@@ -351,18 +362,18 @@ class PerformanceAnalyzer:
         total_pnl_percent = sum(t.pnl_percent for t in self.trades)
 
         # Calculate averages
-        winning_trades = [t for t in self.trades if t.win]
-        losing_trades = [t for t in self.trades if not t.win]
+        winning_trades_list = [t for t in self.trades if t.win]
+        losing_trades_list = [t for t in self.trades if not t.win]
 
         average_win = (
-            sum(t.pnl for t in winning_trades) / len(winning_trades) if winning_trades else 0
+            sum(t.pnl for t in winning_trades_list) / len(winning_trades_list) if winning_trades_list else 0
         )
         average_loss = (
-            sum(t.pnl for t in losing_trades) / len(losing_trades) if losing_trades else 0
+            sum(t.pnl for t in losing_trades_list) / len(losing_trades_list) if losing_trades_list else 0
         )
 
         # Calculate profit factor
-        profit_factor = abs(average_win / average_loss) if average_loss != 0 else 0
+        profit_factor = abs(average_win / average_loss) if average_loss != 0 else (float('inf') if average_win > 0 else 0.0)
 
         # Calculate max drawdown
         max_drawdown = max(t.max_drawdown for t in self.trades)
@@ -370,29 +381,24 @@ class PerformanceAnalyzer:
         # Calculate Sharpe ratio
         if len(self.trades) > 1:
             returns = [t.pnl_percent for t in self.trades]
-            sharpe_ratio = (
-                sum(returns)
-                / len(returns)
-                / (sum((r - sum(returns) / len(returns)) ** 2 for r in returns) / len(returns))
-                ** 0.5
-            )
+            avg_return = sum(returns) / len(returns)
+            variance = sum((r - avg_return) ** 2 for r in returns) / len(returns)
+            sharpe_ratio = avg_return / (variance ** 0.5) if variance > 0 else 0.0
         else:
-            sharpe_ratio = 0
+            sharpe_ratio = 0.0
 
         # Calculate Sortino ratio
         if len(self.trades) > 1:
             returns = [t.pnl_percent for t in self.trades]
             downside_returns = [r for r in returns if r < 0]
             if downside_returns:
-                sortino_ratio = (
-                    sum(returns)
-                    / len(returns)
-                    / (sum(r**2 for r in downside_returns) / len(downside_returns)) ** 0.5
-                )
+                avg_return = sum(returns) / len(returns)
+                downside_variance = sum(r**2 for r in downside_returns) / len(downside_returns)
+                sortino_ratio = avg_return / (downside_variance ** 0.5) if downside_variance > 0 else 0.0
             else:
-                sortino_ratio = 0
+                sortino_ratio = float('inf') if sum(returns) > 0 else 0.0
         else:
-            sortino_ratio = 0
+            sortino_ratio = 0.0
 
         # Calculate metrics by symbol
         symbol_metrics = {}
@@ -422,7 +428,7 @@ class PerformanceAnalyzer:
                         / sum(t.pnl for t in symbol_trades if not t.win)
                     )
                     if sum(t.pnl for t in symbol_trades if not t.win) != 0
-                    else 0
+                    else (float('inf') if sum(t.pnl for t in symbol_trades if t.win) > 0 else 0.0)
                 ),
             }
 
@@ -454,7 +460,7 @@ class PerformanceAnalyzer:
                         / sum(t.pnl for t in strategy_trades if not t.win)
                     )
                     if sum(t.pnl for t in strategy_trades if not t.win) != 0
-                    else 0
+                    else (float('inf') if sum(t.pnl for t in strategy_trades if t.win) > 0 else 0.0)
                 ),
             }
 
