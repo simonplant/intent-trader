@@ -98,16 +98,31 @@ def test_market_order_execution(order_manager, sample_market_data):
 
 def test_limit_order_execution(order_manager, sample_market_data):
     """Test limit order execution"""
-    # Update manager with market data
+    # Update manager with market data (market price is 4500)
     order_manager.update_market_data({"ES": sample_market_data})
 
-    # Place limit order above market price (should not execute)
+    # Place buy limit order at 4500 (at market price - should execute)
     params = OrderParameters(
         symbol="ES",
         side="buy",
         quantity=1.0,
         order_type="limit",
-        price=4600.0,  # Above current price
+        price=4500.0,  # At current price - should execute
+        stop_loss=4400.0,
+        take_profit=4600.0
+    )
+
+    result = order_manager.place_order(params)
+    assert result["status"] == "success"
+    assert "Market order executed" in result["message"]
+    
+    # Place buy limit order above market price (should not execute)
+    params = OrderParameters(
+        symbol="ES",
+        side="buy",
+        quantity=1.0,
+        order_type="limit",
+        price=4600.0,  # Above current price - should not execute
         stop_loss=4400.0,
         take_profit=4700.0
     )

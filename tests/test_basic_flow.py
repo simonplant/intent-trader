@@ -20,14 +20,15 @@ def test_basic_trading_flow():
     order_manager = OrderManager()
 
     # Get historical data
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=30)
     data = market_data.get_historical_data(
-        symbols="AAPL", start_date=start_date, end_date=end_date, interval="1d"
+        symbol="AAPL", period="30d", interval="1d"
     )
 
-    assert not data.empty, "Should receive market data"
-    assert isinstance(data, pd.DataFrame), "Data should be a DataFrame"
+    assert data, "Should receive market data"
+    assert isinstance(data, list), "Data should be a list of records"
+    
+    # Convert to DataFrame for strategy processing
+    data = pd.DataFrame(data)
 
     # Add technical indicators
     data = market_data.add_technical_indicators(data)
@@ -46,7 +47,7 @@ def test_basic_trading_flow():
     latest_signal = data["signal"].iloc[-1]
     if latest_signal == 1:
         order = order_manager.create_order(
-            symbol="AAPL", side=OrderSide.BUY, type=OrderType.MARKET, quantity=100
+            symbol="AAPL", side=OrderSide.BUY, order_type=OrderType.MARKET, quantity=100
         )
 
         assert order is not None, "Should create order"
