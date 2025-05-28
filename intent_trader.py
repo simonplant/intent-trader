@@ -1,7 +1,25 @@
 """
-Intent Trader v1.0 - Production Ready with Source-Based Scoring
-Implements complete PFEMRC workflow with strict source separation.
-No dependencies, <1ms response time, chat-native.
+Intent Trader - Source-Based Trading Assistant
+Version: 1.0.0
+Date: 2024-05-28
+Author: Solo Trader
+License: MIT
+
+Description:
+    Production-ready trading assistant implementing PFEMRC workflow with 
+    strict source-based scoring for DP/Inner Circle and Mancini Blueprint 
+    systems. Built on Intent-Aware Assistant (IAA) architecture.
+
+Features:
+    - Complete PFEMRC workflow (Plan, Focus, Execute, Manage, Review, Coach)
+    - Source-based scoring (no methodology mixing)
+    - Real-time behavioral coaching and pattern detection
+    - Position tracking with live P&L calculations
+    - Journal and context persistence
+    - <1ms response time, zero dependencies
+
+Usage:
+    python intent_trader.py
 """
 
 import re

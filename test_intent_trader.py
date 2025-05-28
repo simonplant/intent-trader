@@ -1,7 +1,24 @@
 """
-Test suite for Intent Trader v1.0
-Covers all critical paths and edge cases.
-Run with: python test_intent_trader.py
+Intent Trader - Test Suite
+Version: 1.0.0
+Date: 2024-05-28
+Author: Solo Trader
+License: MIT
+
+Description:
+    Comprehensive test suite for Intent Trader v1.0.0
+    Covers all critical paths, edge cases, and integration scenarios.
+
+Test Coverage:
+    - All PFEMRC phases
+    - Source-based scoring integrity
+    - Position management and P&L
+    - Behavioral pattern detection
+    - Save/load persistence
+    - Error handling
+
+Usage:
+    python test_intent_trader.py
 """
 
 import unittest

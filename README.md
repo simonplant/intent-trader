@@ -1,5 +1,10 @@
 # Intent Trader - Source-Based Trading Assistant
 
+**Version:** 1.0.0  
+**Date:** 2024-05-28  
+**Author:** Solo Trader  
+**License:** MIT
+
 A lightning-fast (<1ms) trading assistant implementing the PFEMRC workflow with strict source-based scoring for DP/Inner Circle and Mancini Blueprint systems. Built on Intent-Aware Assistant (IAA) architecture with zero dependencies.
 
 ## 🎯 Overview
@@ -14,7 +19,7 @@ Intent Trader is a production-ready trading discipline system that:
 
 ```bash
 # No installation needed - just Python 3.6+
-python intent_trader_v1.py
+python intent_trader.py
 ```
 
 ### Morning Routine Example
