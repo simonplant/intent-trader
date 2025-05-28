@@ -92,19 +92,39 @@ We successfully fixed all 27 failing tests, bringing the test suite from 53 pass
 6. **Import Fixes**: Corrected imports to use the right modules
 7. **Test Logic**: Fixed tests to have correct expectations about how the system works
 
-## Remaining Warnings
-While all tests pass, there are still some deprecation warnings that should be addressed:
-- Pydantic V1 style `@validator` decorators should be migrated to V2 style `@field_validator`
-- `.dict()` method calls should be replaced with `.model_dump()`
-- Class-based `config` should be replaced with `ConfigDict`
+## Pydantic V2 Migration (Completed)
+
+### Changes Made
+1. **Updated Validators**: Migrated all `@validator` decorators to `@field_validator` with `@classmethod`
+2. **Updated Method Calls**: Replaced all `.dict()` calls with `.model_dump()`
+3. **Updated Config Classes**: Replaced `class Config:` with `model_config = ConfigDict(...)`
+
+### Files Updated for Pydantic V2
+- `risk/risk_manager.py` - Updated validator imports and decorators
+- `data/models.py` - Updated validator imports and decorators
+- `agents/execute_agent.py` - Updated validators with proper info parameter
+- `agents/manage_agent.py` - Updated validators with proper info parameter
+- `execution/order_manager.py` - Replaced .dict() with .model_dump()
+- `tests/test_optimize_agent.py` - Replaced .dict() with .model_dump()
+- `agents/coach_agent.py` - Replaced .dict() with .model_dump()
+- `agents/analyst_agent.py` - Replaced .dict() with .model_dump()
+- `agents/market_data_agent.py` - Replaced .dict() with .model_dump()
+- `agents/order_agent.py` - Replaced .dict() with .model_dump()
+- `agents/review_agent.py` - Replaced .dict() with .model_dump()
+- `agents/optimize_agent.py` - Replaced .dict() with .model_dump()
+- `agents/position_agent.py` - Replaced .dict() with .model_dump()
+- `src/order/manager.py` - Updated Config class to model_config
+
+### Result
+All Pydantic deprecation warnings have been resolved. The codebase now uses Pydantic V2 patterns throughout.
 
 ## Recommendations for Future Development
 
-1. **Address Deprecation Warnings**: Update to Pydantic V2 patterns throughout the codebase
-2. **Improve Test Coverage**: Add more edge case tests and integration tests
-3. **Documentation**: Update documentation to reflect the refactored code
-4. **Code Organization**: Consider splitting large modules for better maintainability
-5. **Type Hints**: Add comprehensive type hints throughout the codebase
+1. **Improve Test Coverage**: Add more edge case tests and integration tests
+2. **Documentation**: Update documentation to reflect the refactored code
+3. **Code Organization**: Consider splitting large modules for better maintainability
+4. **Type Hints**: Add comprehensive type hints throughout the codebase
+5. **Error Handling**: Improve error messages and exception handling
 
 ## Summary
-The refactoring effort successfully addressed all technical debt that was causing test failures. The codebase is now in a much more stable state with all 80 tests passing, providing a solid foundation for future development. 
+The refactoring effort successfully addressed all technical debt that was causing test failures. The codebase is now in a much more stable state with all 80 tests passing and has been fully migrated to Pydantic V2 patterns, providing a solid foundation for future development. 
