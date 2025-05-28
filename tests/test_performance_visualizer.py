@@ -200,7 +200,7 @@ def test_create_performance_dashboard(performance_visualizer):
 
     # Check figure properties
     assert fig is not None
-    assert len(fig.data) == 6  # All plots combined
+    assert len(fig.data) == 8  # All plots combined (equity curve has 2, strategy performance has 2)
     assert fig.layout.title.text == "Trading Performance Dashboard"
     assert fig.layout.height == 1200
 

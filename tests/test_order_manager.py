@@ -116,15 +116,15 @@ def test_limit_order_execution(order_manager, sample_market_data):
     assert result["status"] == "success"
     assert "Market order executed" in result["message"]
     
-    # Place buy limit order above market price (should not execute)
+    # Place buy limit order below market price (should not execute)
     params = OrderParameters(
         symbol="ES",
         side="buy",
         quantity=1.0,
         order_type="limit",
-        price=4600.0,  # Above current price - should not execute
-        stop_loss=4400.0,
-        take_profit=4700.0
+        price=4400.0,  # Below current price - should not execute (waiting for better price)
+        stop_loss=4300.0,
+        take_profit=4500.0
     )
 
     result = order_manager.place_order(params)
@@ -178,9 +178,9 @@ def test_order_cancellation(order_manager, sample_market_data):
     # Update manager with market data
     order_manager.update_market_data({"ES": sample_market_data})
 
-    # Place limit order
+    # Place limit order below market price (won't execute immediately)
     params = OrderParameters(
-        symbol="ES", side="buy", quantity=1.0, order_type="limit", price=4600.0
+        symbol="ES", side="buy", quantity=1.0, order_type="limit", price=4400.0
     )
 
     result = order_manager.place_order(params)
@@ -247,7 +247,7 @@ def test_get_open_orders(order_manager, sample_market_data):
 
     # Place limit order (should be pending)
     params = OrderParameters(
-        symbol="ES", side="buy", quantity=1.0, order_type="limit", price=4600.0
+        symbol="ES", side="buy", quantity=1.0, order_type="limit", price=4400.0
     )
     order_manager.place_order(params)
 

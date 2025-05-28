@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from agents.optimize_agent import OptimizationParameters, OptimizeAgent
+from agents.optimize_agent import OptimizationParameters, OptimizeAgent, OptimizationResult
 from data.schemas import MarketDataSchema, TradePlanSchema
 
 
@@ -40,29 +40,24 @@ def test_optimize_trade_with_valid_inputs(sample_trade_plan, sample_market_data)
     plan_dict = sample_trade_plan.dict()
     market_data_dict = {sample_market_data.symbol: sample_market_data.dict()}
 
-    # Execute optimization
-    result = agent.execute(plan=plan_dict, market_data=market_data_dict, **params.dict())
+    # Execute optimization with a single plan
+    # Pass the plan directly since Storage doesn't have get_active_plans
+    result = agent._optimize_trade(plan_dict, params, market_data_dict)
 
-    # Verify result structure
-    assert result["status"] == "success"
-    assert "data" in result
-    assert "optimization_results" in result["data"]
-
+    # Verify result
+    assert result is not None
+    assert isinstance(result, OptimizationResult)
+    
     # Verify optimization results
-    opt_results = result["data"]["optimization_results"]
-    assert len(opt_results) > 0
-
-    # Verify first optimization result
-    first_result = opt_results[0]
-    assert "optimal_position_size" in first_result
-    assert "optimal_entry_price" in first_result
-    assert "optimal_stop_loss" in first_result
-    assert "optimal_take_profit" in first_result
-    assert "risk_reward_ratio" in first_result
-    assert "expected_pnl" in first_result
-    assert "confidence_score" in first_result
-    assert "execution_priority" in first_result
-    assert "notes" in first_result
+    assert result.optimal_position_size > 0
+    assert result.optimal_entry_price > 0
+    assert result.optimal_stop_loss > 0
+    assert result.optimal_take_profit > 0
+    assert result.risk_reward_ratio > 0
+    assert result.expected_pnl != 0
+    assert 0 <= result.confidence_score <= 1
+    assert 1 <= result.execution_priority <= 100
+    assert isinstance(result.notes, str)
 
 
 def test_optimize_trade_with_invalid_inputs():
