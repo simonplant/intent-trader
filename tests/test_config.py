@@ -1,9 +1,9 @@
-"""Tests for the configuration manager."""
+"""Tests for configuration management."""
 
-import os
 import pytest
+import tempfile
 from pathlib import Path
-from src.core.config import ConfigManager
+from src.core.config import ConfigManager, get_config_manager
 
 @pytest.fixture
 def config_manager(tmp_path):

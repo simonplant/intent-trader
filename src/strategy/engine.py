@@ -1,21 +1,24 @@
-"""Strategy engine implementation."""
+"""Strategy engine for generating trading signals."""
 
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional, Union
+from typing import Dict, Any, Optional
 from datetime import datetime
 
-from ..core.config import config
-from ..core.logging import log_manager
-
-logger = log_manager.get_logger(__name__)
+from ..core.config import get_config_manager
+from ..core.logging import get_log_manager
 
 class StrategyEngine:
-    """Engine for generating trading signals from market data."""
+    """Engine for running trading strategies and generating signals."""
     
-    def __init__(self):
-        """Initialize the strategy engine."""
-        self.config = config
+    def __init__(self, config=None):
+        """Initialize the strategy engine.
+        
+        Args:
+            config: Configuration manager instance.
+        """
+        self.config = config or get_config_manager()
+        self.logger = get_log_manager(self.config).get_logger(__name__)
         self.strategies = {
             'sma_crossover': self._sma_crossover_strategy,
             'rsi': self._rsi_strategy
@@ -43,7 +46,7 @@ class StrategyEngine:
         try:
             return self.strategies[strategy](data, params)
         except Exception as e:
-            logger.error(f"Error generating signals: {str(e)}")
+            self.logger.error(f"Error generating signals: {str(e)}")
             raise
             
     def _sma_crossover_strategy(

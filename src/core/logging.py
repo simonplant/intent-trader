@@ -66,5 +66,25 @@ class LogManager:
             self.loggers[name] = logging.getLogger(name)
         return self.loggers[name]
 
-# Create a global log manager instance
-log_manager = LogManager(config) 
+# Global log manager instance will be created when needed
+_log_manager: Optional[LogManager] = None
+
+def get_log_manager(config=None) -> LogManager:
+    """Get or create the global log manager instance.
+    
+    Args:
+        config: Configuration manager instance (required for first call).
+        
+    Returns:
+        LogManager instance.
+    """
+    global _log_manager
+    if _log_manager is None:
+        if config is None:
+            # Create a minimal config for basic logging
+            class MinimalConfig:
+                def get(self, key, default=None):
+                    return default
+            config = MinimalConfig()
+        _log_manager = LogManager(config)
+    return _log_manager 

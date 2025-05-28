@@ -4,9 +4,9 @@ import pytest
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
-from src.core.config import ConfigManager
+from src.core.config import get_config_manager
 from src.core.logging import LogManager
-from src.market.data import MarketDataFeed
+from src.market_data.feed import MarketDataFeed
 
 @pytest.fixture
 def market_data_feed(tmp_path):
@@ -28,7 +28,7 @@ def market_data_feed(tmp_path):
     cache_dir = tmp_path / "data" / "cache"
     cache_dir.mkdir(parents=True)
     
-    config = ConfigManager(str(config_path))
+    config = get_config_manager(str(config_path))
     logger = LogManager().get_logger('market_data')
     
     return MarketDataFeed(config, logger, cache_dir=str(cache_dir))

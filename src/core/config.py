@@ -19,7 +19,7 @@ Example:
 import os
 import yaml
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from dotenv import load_dotenv
 
 class ConfigManager:
@@ -228,5 +228,19 @@ class ConfigManager:
         with open(self.config_path, 'w') as f:
             yaml.dump(self.config, f, default_flow_style=False)
 
-# Create a global config instance
-config = ConfigManager() 
+# Global config manager instance will be created when needed
+_config_manager: Optional[ConfigManager] = None
+
+def get_config_manager(config_path: str = "config/config.yaml") -> ConfigManager:
+    """Get or create the global config manager instance.
+    
+    Args:
+        config_path: Path to the configuration file.
+        
+    Returns:
+        ConfigManager instance.
+    """
+    global _config_manager
+    if _config_manager is None:
+        _config_manager = ConfigManager(config_path)
+    return _config_manager 

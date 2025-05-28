@@ -5,17 +5,26 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from datetime import datetime
 
-from .config import config
-from .logging import log_manager
-
-logger = log_manager.get_logger(__name__)
+from .logging import get_log_manager
 
 class DatabaseManager:
     """Manages database operations for the trading system."""
     
-    def __init__(self):
-        """Initialize the database manager."""
-        self.db_path = Path(config.get('database.path', 'data/db/trading.db'))
+    def __init__(self, config=None):
+        """Initialize the database manager.
+        
+        Args:
+            config: Configuration manager instance.
+        """
+        self.config = config
+        self.logger = get_log_manager(config).get_logger(__name__)
+        
+        # Default database path if no config provided
+        db_path = 'data/db/trading.db'
+        if config:
+            db_path = config.get('database.path', db_path)
+        
+        self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
         
@@ -83,7 +92,7 @@ class DatabaseManager:
                 cursor.execute(query, params)
                 return [dict(row) for row in cursor.fetchall()]
         except Exception as e:
-            logger.error(f"Database error: {str(e)}")
+            self.logger.error(f"Database error: {str(e)}")
             raise
             
     def insert_order(self, order_data: Dict[str, Any]):
@@ -189,5 +198,19 @@ class DatabaseManager:
         )
         self.execute_query(query, params)
 
-# Create a global database manager instance
-db_manager = DatabaseManager() 
+# Global database manager instance will be created when needed
+_db_manager: Optional[DatabaseManager] = None
+
+def get_db_manager(config=None) -> DatabaseManager:
+    """Get or create the global database manager instance.
+    
+    Args:
+        config: Configuration manager instance.
+        
+    Returns:
+        DatabaseManager instance.
+    """
+    global _db_manager
+    if _db_manager is None:
+        _db_manager = DatabaseManager(config)
+    return _db_manager 

@@ -4,8 +4,9 @@ import pytest
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
+from unittest.mock import Mock, patch
 
-from src.market.feed import MarketDataFeed
+from src.market_data.feed import MarketDataFeed
 from src.strategy.engine import StrategyEngine
 from src.order.manager import OrderManager, OrderSide, OrderType
 

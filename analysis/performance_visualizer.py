@@ -1,19 +1,66 @@
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
+# Make plotly optional
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    from plotly.subplots import make_subplots
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    go = None
+    px = None
+    make_subplots = None
+
 import pandas as pd
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
-from analysis.performance_analyzer import PerformanceMetrics, DailyMetrics, TradeMetrics
+from typing import List, Dict, Any, Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    try:
+        from plotly.graph_objects import Figure
+    except ImportError:
+        Figure = Any
+else:
+    Figure = Any
+
+# Fix import path - create a simple performance metrics structure for now
+from dataclasses import dataclass
+
+@dataclass
+class TradeMetrics:
+    symbol: str
+    pnl: float
+    holding_time: timedelta
+    risk_reward_ratio: float
+    execution_quality: float
+    plan_adherence: float
+
+@dataclass  
+class DailyMetrics:
+    date: datetime
+    total_pnl: float
+    total_pnl_percent: float
+    trades: List[TradeMetrics]
+
+@dataclass
+class PerformanceMetrics:
+    daily_metrics: List[DailyMetrics]
+    symbol_metrics: Dict[str, Dict]
+    strategy_metrics: Dict[str, Dict]
 
 class PerformanceVisualizer:
     """Visualizer for trading performance metrics"""
     
     def __init__(self, metrics: PerformanceMetrics):
         self.metrics = metrics
+        if not PLOTLY_AVAILABLE:
+            print("Warning: Plotly not available. Visualization features disabled.")
         
-    def plot_equity_curve(self) -> go.Figure:
+    def plot_equity_curve(self) -> Optional[Figure]:
         """Plot equity curve"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create equity curve plot.")
+            return None
+            
         # Create cumulative P&L data
         dates = []
         cumulative_pnl = []
@@ -69,8 +116,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def plot_daily_returns(self) -> go.Figure:
+    def plot_daily_returns(self) -> Optional[Figure]:
         """Plot daily returns"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create daily returns plot.")
+            return None
+            
         # Create daily returns data
         dates = []
         returns = []
@@ -101,8 +152,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def plot_win_rate_by_symbol(self) -> go.Figure:
+    def plot_win_rate_by_symbol(self) -> Optional[Figure]:
         """Plot win rate by symbol"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create win rate plot.")
+            return None
+            
         # Create win rate data
         symbols = []
         win_rates = []
@@ -133,8 +188,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def plot_pnl_by_symbol(self) -> go.Figure:
+    def plot_pnl_by_symbol(self) -> Optional[Figure]:
         """Plot P&L by symbol"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create P&L plot.")
+            return None
+            
         # Create P&L data
         symbols = []
         pnl = []
@@ -165,8 +224,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def plot_strategy_performance(self) -> go.Figure:
+    def plot_strategy_performance(self) -> Optional[Figure]:
         """Plot strategy performance"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create strategy performance plot.")
+            return None
+        
         # Create strategy performance data
         strategies = []
         win_rates = []
@@ -216,8 +279,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def plot_trade_duration(self) -> go.Figure:
+    def plot_trade_duration(self) -> Optional[Figure]:
         """Plot trade duration distribution"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create trade duration plot.")
+            return None
+            
         # Create duration data
         durations = []
         for daily in self.metrics.daily_metrics:
@@ -246,8 +313,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def plot_risk_reward(self) -> go.Figure:
+    def plot_risk_reward(self) -> Optional[Figure]:
         """Plot risk-reward scatter plot"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create risk-reward plot.")
+            return None
+            
         # Create risk-reward data
         risk_reward = []
         pnl = []
@@ -288,8 +359,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def plot_execution_quality(self) -> go.Figure:
+    def plot_execution_quality(self) -> Optional[Figure]:
         """Plot execution quality metrics"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create execution quality plot.")
+            return None
+            
         # Create execution quality data
         execution_quality = []
         plan_adherence = []
@@ -328,8 +403,12 @@ class PerformanceVisualizer:
         
         return fig
         
-    def create_performance_dashboard(self) -> go.Figure:
+    def create_performance_dashboard(self) -> Optional[Figure]:
         """Create a comprehensive performance dashboard"""
+        if not PLOTLY_AVAILABLE:
+            print("Plotly not available. Cannot create performance dashboard.")
+            return None
+            
         # Create subplots
         fig = make_subplots(
             rows=3, cols=2,
@@ -342,33 +421,39 @@ class PerformanceVisualizer:
         
         # Add equity curve
         equity_fig = self.plot_equity_curve()
-        for trace in equity_fig.data:
-            fig.add_trace(trace, row=1, col=1)
+        if equity_fig is not None:
+            for trace in equity_fig.data:
+                fig.add_trace(trace, row=1, col=1)
             
         # Add daily returns
         returns_fig = self.plot_daily_returns()
-        for trace in returns_fig.data:
-            fig.add_trace(trace, row=1, col=2)
+        if returns_fig is not None:
+            for trace in returns_fig.data:
+                fig.add_trace(trace, row=1, col=2)
             
         # Add win rate by symbol
         win_rate_fig = self.plot_win_rate_by_symbol()
-        for trace in win_rate_fig.data:
-            fig.add_trace(trace, row=2, col=1)
+        if win_rate_fig is not None:
+            for trace in win_rate_fig.data:
+                fig.add_trace(trace, row=2, col=1)
             
         # Add P&L by symbol
         pnl_fig = self.plot_pnl_by_symbol()
-        for trace in pnl_fig.data:
-            fig.add_trace(trace, row=2, col=2)
+        if pnl_fig is not None:
+            for trace in pnl_fig.data:
+                fig.add_trace(trace, row=2, col=2)
             
         # Add strategy performance
         strategy_fig = self.plot_strategy_performance()
-        for trace in strategy_fig.data:
-            fig.add_trace(trace, row=3, col=1)
+        if strategy_fig is not None:
+            for trace in strategy_fig.data:
+                fig.add_trace(trace, row=3, col=1)
             
         # Add trade duration
         duration_fig = self.plot_trade_duration()
-        for trace in duration_fig.data:
-            fig.add_trace(trace, row=3, col=2)
+        if duration_fig is not None:
+            for trace in duration_fig.data:
+                fig.add_trace(trace, row=3, col=2)
             
         # Update layout
         fig.update_layout(

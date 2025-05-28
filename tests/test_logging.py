@@ -1,10 +1,11 @@
-"""Tests for the logging manager."""
+"""Tests for logging functionality."""
 
 import logging
 import pytest
+import tempfile
 from pathlib import Path
-from src.core.logging import LogManager
-from src.core.config import ConfigManager
+from src.core.config import ConfigManager, get_config_manager
+from src.core.logging import LogManager, get_log_manager
 
 @pytest.fixture
 def log_manager(tmp_path):

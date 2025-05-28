@@ -8,6 +8,36 @@ Refactor intent-trader-mvc (unreliable) → Native IAA app for ChatGPT/Claude.ai
 - **Optimization**: Lowest cost via MAX mode (minimal API calls, efficient tokens)
 - **Architecture**: Chat-native IAA with embedded schemas and natural language intents
 
+## ⚠️ **IMPORTANT: Code Change Rules**
+*These rules must be followed for ALL code changes and deletions*
+
+1. **NO Automatic Deletions**
+   - All file deletions require explicit user approval
+   - No bulk deletions without individual review
+   - Preserve all code until explicitly approved for removal
+
+2. **Safe Migration Process**
+   - Move code to new locations before deletion
+   - Keep both old and new implementations until verified
+   - Document all changes before execution
+
+3. **Change Approval Process**
+   - Present all proposed changes for review
+   - Wait for explicit approval before execution
+   - Provide rollback plan for all changes
+
+4. **Code Preservation**
+   - Back up code before major changes
+   - Keep historical versions accessible
+   - Document all migrations and changes
+
+5. **Git Safety Rules**
+   - NO force operations (`git push --force`, `git reset --hard`, etc.)
+   - NO destructive Git commands without explicit approval
+   - Always create backup branches before major changes
+   - Use `git stash` instead of force operations
+   - Document all Git operations before execution
+
 ---
 
 ## 🚨 **PHASE 1: Critical Fixes (Week 1)**

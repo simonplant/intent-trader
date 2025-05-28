@@ -1,9 +1,11 @@
 """Tests for the database manager."""
 
 import pytest
+import tempfile
+from pathlib import Path
 from datetime import datetime, timedelta
-from src.core.database import DatabaseManager
-from src.core.config import ConfigManager
+from src.core.config import ConfigManager, get_config_manager
+from src.core.database import DatabaseManager, get_db_manager
 
 @pytest.fixture
 def db_manager(tmp_path):

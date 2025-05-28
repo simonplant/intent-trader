@@ -1,5 +1,5 @@
 from typing import Dict, Any
-from data.models import TradePlan
+from data.models import Plan as TradePlan
 from agents.analyst_agent import AnalystAgent
 from agents.conviction_classifier_agent import ConvictionClassifierAgent
 

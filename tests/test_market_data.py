@@ -1,4 +1,4 @@
-"""Tests for the market data system."""
+"""Tests for market data functionality."""
 
 import pytest
 import pandas as pd
@@ -6,10 +6,12 @@ import numpy as np
 from datetime import datetime, timedelta
 from pathlib import Path
 import os
+from unittest.mock import Mock, patch, MagicMock
+import tempfile
 
-from src.market.data import MarketDataFeed
-from src.core.config import config
-from src.core.logging import log_manager
+from src.core.config import get_config_manager
+from src.core.logging import get_log_manager
+from src.market_data.feed import MarketDataFeed
 
 @pytest.fixture
 def market_data_feed():
@@ -19,7 +21,7 @@ def market_data_feed():
     cache_dir.mkdir(parents=True, exist_ok=True)
     
     # Create market data feed instance
-    feed = MarketDataFeed(config, log_manager.get_logger(__name__), str(cache_dir))
+    feed = MarketDataFeed(get_config_manager(), get_log_manager().get_logger(__name__), str(cache_dir))
     
     yield feed
     
