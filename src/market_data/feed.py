@@ -39,6 +39,9 @@ class MarketDataFeed:
                 ticker = yf.Ticker(symbol)
                 data = ticker.history(period=period, interval=interval)
                 if not data.empty:
+                    # Reset index to include 'Datetime' as a column
+                    data.reset_index(inplace=True)
+                    # Convert to dictionary with 'Datetime' key
                     return data.to_dict("records")
             except Exception as e:
                 logger.error(f"Error fetching historical data for {symbol}: {str(e)}")
