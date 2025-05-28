@@ -19,7 +19,6 @@ How to translate requirements for IAA:
 - Every command or function (e.g., analyze DP, create plan, review trade) gets a handler.
 - The handler manages input parsing, logic, and output formatting for its intent.
 
-⸻
 
 ## Step 2: Example Mapping from Your Materials
 
@@ -39,8 +38,6 @@ How to translate requirements for IAA:
 
 Note: Don’t implement as “slash” commands; in IAA, these are natural-language intents like “analyze today’s DP call,” “give me a summary of the Mancini newsletter,” or “what’s the unified plan?”
 
-⸻
-
 ### B. State/Context Variables
 phase: PLAN, FOCUS, EXECUTE, MANAGE, REVIEW, COACH
 last_cleaned_transcript
@@ -52,7 +49,6 @@ active_trade_ideas
 level_framework
 trade_log
 
-⸻
 
 ### C. Handler Example Pseudocode
 Handler: handle_analyze_dp
@@ -69,7 +65,6 @@ Logic: Uses dp_analysis, mancini_analysis from context if available
 
 Output: Updates trade_plan in context, returns markdown summary
 
-⸻
 
 ## Step 3: Extend the IAA Template
 
@@ -100,8 +95,6 @@ def define_intent_patterns(self):
 ### 4. Keep Input Natural
 - Your MVP should not require users to know slash commands—support “create plan for today”, “analyze this DP call”, etc.
 
-⸻
-
 ## Step 4: Implementation Checklist
 1. Collect ALL required actions (intents) from docs, domain model, workflow
 2. Design a context dict that stores all outputs/objects you want to persist (see above)
@@ -111,20 +104,7 @@ def define_intent_patterns(self):
 6. Test: Run through typical workflow (“clean transcript → analyze DP → summarize Mancini → analyze Mancini → create plan”)
 7. Polish: Add helpful fallback handler, debug flag, and sample usage in __main__
 
-⸻
-
 ## Final Notes
 - No framework or command bus. Your IAA app is readable, hackable, and never needs more than one file.
 - Your “domain model” and “commands” are not code—they’re just what you turn into intents and context variables!
 - Scale up? Add more intents and context fields—never break the template.
-
-⸻
-
-Want an Example?
-
-If you like, I can show a concrete code stub for:
-	•	One or two new intents (e.g., “create plan”, “analyze dp”)
-	•	The right context dict
-	•	Handler skeletons (ready for you to plug in your logic)
-
-Just say the word!
