@@ -1,0 +1,10 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../intent-trader-mvc"
+		}
+	]
+}
