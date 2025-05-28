@@ -1,68 +1,70 @@
-"""Logging configuration for the trading system."""
+"""Logging manager for the trading system."""
 
-import logging
-import logging.handlers
 import os
+import logging
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional
 
-from .config import config
-
 class LogManager:
-    """Manages logging configuration for the trading system."""
+    """Manages logging configuration and provides logger instances."""
     
-    def __init__(self):
-        """Initialize the logging manager."""
-        self.logger = logging.getLogger('intent_trader')
-        self._setup_logging()
+    def __init__(self, config):
+        """Initialize the logging manager.
         
-    def _setup_logging(self):
-        """Set up logging configuration."""
-        log_config = config.get_logging_config()
+        Args:
+            config: Configuration manager instance.
+        """
+        self.config = config
+        self.loggers = {}
+        self._setup_root_logger()
         
-        # Set log level
+    def _setup_root_logger(self):
+        """Set up the root logger with file and console handlers."""
+        log_config = self.config.get('logging', {})
         log_level = getattr(logging, log_config.get('level', 'INFO'))
-        self.logger.setLevel(log_level)
+        log_file = log_config.get('file', 'logs/trading.log')
+        max_size = log_config.get('max_size', 10 * 1024 * 1024)  # 10MB
+        backup_count = log_config.get('backup_count', 5)
         
         # Create logs directory if it doesn't exist
-        log_dir = Path(log_config.get('file_path', 'logs')).parent
-        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = Path(log_file)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # File handler with rotation
-        file_handler = logging.handlers.RotatingFileHandler(
-            filename=log_config.get('file_path', 'logs/trading.log'),
-            maxBytes=log_config.get('max_size', 10 * 1024 * 1024),  # 10MB
-            backupCount=log_config.get('backup_count', 5)
+        # Configure root logger
+        root_logger = logging.getLogger()
+        root_logger.setLevel(log_level)
+        
+        # File handler
+        file_handler = RotatingFileHandler(
+            log_file,
+            maxBytes=max_size,
+            backupCount=backup_count
         )
+        file_handler.setFormatter(
+            logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        )
+        root_logger.addHandler(file_handler)
         
         # Console handler
         console_handler = logging.StreamHandler()
-        
-        # Create formatter
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        console_handler.setFormatter(
+            logging.Formatter('%(levelname)s: %(message)s')
         )
+        root_logger.addHandler(console_handler)
         
-        # Add formatter to handlers
-        file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
-        
-        # Add handlers to logger
-        self.logger.addHandler(file_handler)
-        self.logger.addHandler(console_handler)
-        
-    def get_logger(self, name: Optional[str] = None) -> logging.Logger:
+    def get_logger(self, name: str) -> logging.Logger:
         """Get a logger instance.
         
         Args:
-            name: Optional name for the logger. If None, returns the main logger.
+            name: Logger name.
             
         Returns:
-            A configured logger instance.
+            Logger instance.
         """
-        if name:
-            return self.logger.getChild(name)
-        return self.logger
+        if name not in self.loggers:
+            self.loggers[name] = logging.getLogger(name)
+        return self.loggers[name]
 
 # Create a global log manager instance
-log_manager = LogManager() 
+log_manager = LogManager(config) 

@@ -1,8 +1,8 @@
-"""Database management for the trading system."""
+"""Database manager for the trading system."""
 
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 from datetime import datetime
 
 from .config import config
@@ -15,13 +15,13 @@ class DatabaseManager:
     
     def __init__(self):
         """Initialize the database manager."""
-        self.db_path = Path(config.get_database_config().get('path', 'data/db/trading.db'))
+        self.db_path = Path(config.get('database.path', 'data/db/trading.db'))
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
         
     def _init_db(self):
         """Initialize the database with required tables."""
-        with self._get_connection() as conn:
+        with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
             # Create orders table
@@ -45,6 +45,7 @@ class DatabaseManager:
                     symbol TEXT PRIMARY KEY,
                     quantity REAL NOT NULL,
                     average_price REAL NOT NULL,
+                    created_at TIMESTAMP NOT NULL,
                     updated_at TIMESTAMP NOT NULL
                 )
             ''')
@@ -65,143 +66,128 @@ class DatabaseManager:
             
             conn.commit()
             
-    def _get_connection(self) -> sqlite3.Connection:
-        """Get a database connection."""
-        conn = sqlite3.connect(str(self.db_path))
-        conn.row_factory = sqlite3.Row
-        return conn
-        
-    def save_order(self, order: Dict[str, Any]) -> None:
-        """Save an order to the database.
+    def execute_query(self, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
+        """Execute a database query.
         
         Args:
-            order: Dictionary containing order information.
-        """
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR REPLACE INTO orders (
-                    id, symbol, side, type, quantity, price,
-                    status, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                order['id'],
-                order['symbol'],
-                order['side'],
-                order['type'],
-                order['quantity'],
-                order.get('price'),
-                order['status'],
-                order['created_at'],
-                order['updated_at']
-            ))
-            conn.commit()
+            query: SQL query to execute.
+            params: Query parameters.
             
+        Returns:
+            List of dictionaries containing query results.
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.row_factory = sqlite3.Row
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                return [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Database error: {str(e)}")
+            raise
+            
+    def insert_order(self, order_data: Dict[str, Any]):
+        """Insert a new order into the database.
+        
+        Args:
+            order_data: Dictionary containing order data.
+        """
+        query = '''
+            INSERT INTO orders (
+                id, symbol, side, type, quantity, price,
+                status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        '''
+        params = (
+            order_data['id'],
+            order_data['symbol'],
+            order_data['side'],
+            order_data['type'],
+            order_data['quantity'],
+            order_data.get('price'),
+            order_data['status'],
+            datetime.now().isoformat(),
+            datetime.now().isoformat()
+        )
+        self.execute_query(query, params)
+        
+    def update_order_status(self, order_id: str, status: str):
+        """Update the status of an order.
+        
+        Args:
+            order_id: Order ID.
+            status: New status.
+        """
+        query = '''
+            UPDATE orders
+            SET status = ?, updated_at = ?
+            WHERE id = ?
+        '''
+        params = (status, datetime.now().isoformat(), order_id)
+        self.execute_query(query, params)
+        
     def get_order(self, order_id: str) -> Optional[Dict[str, Any]]:
         """Get an order by ID.
         
         Args:
-            order_id: The ID of the order to retrieve.
+            order_id: Order ID.
             
         Returns:
-            Dictionary containing order information, or None if not found.
+            Order data if found, None otherwise.
         """
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM orders WHERE id = ?', (order_id,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
-            
-    def update_position(self, symbol: str, quantity: float, price: float) -> None:
-        """Update a position in the database.
+        query = 'SELECT * FROM orders WHERE id = ?'
+        results = self.execute_query(query, (order_id,))
+        return results[0] if results else None
         
-        Args:
-            symbol: The trading symbol.
-            quantity: The position quantity.
-            price: The average price.
+    def get_open_orders(self) -> List[Dict[str, Any]]:
+        """Get all open orders.
+        
+        Returns:
+            List of open orders.
         """
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT OR REPLACE INTO positions (
-                    symbol, quantity, average_price, updated_at
-                ) VALUES (?, ?, ?, ?)
-            ''', (symbol, quantity, price, datetime.utcnow()))
-            conn.commit()
-            
+        query = 'SELECT * FROM orders WHERE status = "open"'
+        return self.execute_query(query)
+        
     def get_position(self, symbol: str) -> Optional[Dict[str, Any]]:
         """Get a position by symbol.
         
         Args:
-            symbol: The trading symbol.
+            symbol: Symbol.
             
         Returns:
-            Dictionary containing position information, or None if not found.
+            Position data if found, None otherwise.
         """
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('SELECT * FROM positions WHERE symbol = ?', (symbol,))
-            row = cursor.fetchone()
-            return dict(row) if row else None
-            
-    def save_trade(self, trade: Dict[str, Any]) -> None:
-        """Save a trade to the database.
+        query = 'SELECT * FROM positions WHERE symbol = ?'
+        results = self.execute_query(query, (symbol,))
+        return results[0] if results else None
+        
+    def update_position(self, position_data: Dict[str, Any]):
+        """Update a position.
         
         Args:
-            trade: Dictionary containing trade information.
+            position_data: Dictionary containing position data.
         """
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute('''
-                INSERT INTO trades (
-                    id, order_id, symbol, side, quantity,
-                    price, timestamp
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (
-                trade['id'],
-                trade['order_id'],
-                trade['symbol'],
-                trade['side'],
-                trade['quantity'],
-                trade['price'],
-                trade['timestamp']
-            ))
-            conn.commit()
-            
-    def get_trades(self, symbol: Optional[str] = None, 
-                  start_time: Optional[datetime] = None,
-                  end_time: Optional[datetime] = None) -> List[Dict[str, Any]]:
-        """Get trades with optional filtering.
-        
-        Args:
-            symbol: Optional symbol to filter by.
-            start_time: Optional start time to filter by.
-            end_time: Optional end time to filter by.
-            
-        Returns:
-            List of dictionaries containing trade information.
-        """
-        query = 'SELECT * FROM trades WHERE 1=1'
-        params = []
-        
-        if symbol:
-            query += ' AND symbol = ?'
-            params.append(symbol)
-            
-        if start_time:
-            query += ' AND timestamp >= ?'
-            params.append(start_time)
-            
-        if end_time:
-            query += ' AND timestamp <= ?'
-            params.append(end_time)
-            
-        query += ' ORDER BY timestamp DESC'
-        
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(query, params)
-            return [dict(row) for row in cursor.fetchall()]
+        query = '''
+            INSERT INTO positions (
+                symbol, quantity, average_price, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(symbol) DO UPDATE SET
+                quantity = ?,
+                average_price = ?,
+                updated_at = ?
+        '''
+        now = datetime.now().isoformat()
+        params = (
+            position_data['symbol'],
+            position_data['quantity'],
+            position_data['average_price'],
+            now,
+            now,
+            position_data['quantity'],
+            position_data['average_price'],
+            now
+        )
+        self.execute_query(query, params)
 
 # Create a global database manager instance
 db_manager = DatabaseManager() 

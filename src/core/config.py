@@ -51,26 +51,21 @@ class ConfigManager:
         Raises:
             RuntimeError: If the configuration file cannot be loaded or is invalid.
         """
-        self.config_path = config_path
-        self.config: Dict[str, Any] = {}
-        self._load_config()
+        self.config_path = Path(config_path)
+        self.config = self._load_config()
         self._load_env()
         
-    def _load_config(self):
+    def _load_config(self) -> Dict[str, Any]:
         """Load configuration from YAML file.
         
-        This method loads the configuration from the specified YAML file and
-        stores it in the config dictionary. It handles YAML parsing errors and
-        file access errors.
-        
-        Raises:
-            RuntimeError: If the configuration file cannot be loaded or is invalid.
+        Returns:
+            Dictionary containing configuration settings.
         """
-        try:
-            with open(self.config_path, 'r') as f:
-                self.config = yaml.safe_load(f)
-        except Exception as e:
-            raise RuntimeError(f"Failed to load config from {self.config_path}: {str(e)}")
+        if not self.config_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+            
+        with open(self.config_path, 'r') as f:
+            return yaml.safe_load(f)
             
     def _load_env(self):
         """Load environment variables.
@@ -114,7 +109,7 @@ class ConfigManager:
         value = self.config
         for k in keys:
             if isinstance(value, dict):
-                value = value.get(k)
+                value = value.get(k, default)
             else:
                 return default
         return value if value is not None else default
@@ -210,6 +205,28 @@ class ConfigManager:
             ```
         """
         return self.config.get('performance', {})
+
+    def set(self, key: str, value: Any):
+        """Set a configuration value.
+        
+        Args:
+            key: Configuration key (dot notation supported).
+            value: Value to set.
+        """
+        keys = key.split('.')
+        config = self.config
+        
+        for k in keys[:-1]:
+            if k not in config:
+                config[k] = {}
+            config = config[k]
+            
+        config[keys[-1]] = value
+        
+    def save(self):
+        """Save configuration to file."""
+        with open(self.config_path, 'w') as f:
+            yaml.dump(self.config, f, default_flow_style=False)
 
 # Create a global config instance
 config = ConfigManager() 
