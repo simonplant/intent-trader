@@ -2,7 +2,7 @@
 
 import re
 from dataclasses import dataclass
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -60,7 +60,7 @@ class IntentParser:
 
         # Extract parameters
         parameters = {}
-        
+
         # Check for specific sources
         if "dp transcript" in text_lower:
             parameters["source"] = "dp_transcript"

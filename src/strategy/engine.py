@@ -1,7 +1,8 @@
 """Strategy engine for generating trading signals."""
 
+from typing import Dict, Optional
+
 import pandas as pd
-from typing import Optional, Dict
 
 from ..core.config import get_config_manager
 from ..core.logging import get_log_manager

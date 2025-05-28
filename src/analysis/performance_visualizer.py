@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Dict, List, Optional, Union
 
 import numpy as np
@@ -8,6 +8,7 @@ from plotly.graph_objects import Figure
 try:
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
+
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
@@ -80,7 +81,9 @@ class PerformanceMetrics:
         self.total_pnl = final_capital - initial_capital
         self.total_pnl_percent = (self.total_pnl / initial_capital) * 100
         self.num_trades = len(trades)
-        self.win_rate = sum(1 for t in trades if t.pnl > 0) / self.num_trades if self.num_trades > 0 else 0
+        self.win_rate = (
+            sum(1 for t in trades if t.pnl > 0) / self.num_trades if self.num_trades > 0 else 0
+        )
         self.avg_trade = sum(t.pnl for t in trades) / self.num_trades if self.num_trades > 0 else 0
         self.max_drawdown = self._calculate_max_drawdown()
         self.sharpe_ratio = self._calculate_sharpe_ratio()
@@ -145,7 +148,9 @@ class PerformanceVisualizer:
             return None
 
         dates = [m.date for m in self.metrics.daily_metrics]
-        equity = np.cumsum([m.pnl for m in self.metrics.daily_metrics]) + self.metrics.initial_capital
+        equity = (
+            np.cumsum([m.pnl for m in self.metrics.daily_metrics]) + self.metrics.initial_capital
+        )
 
         fig = go.Figure()
         fig.add_trace(
@@ -209,8 +214,7 @@ class PerformanceVisualizer:
 
         symbols = list(symbol_trades.keys())
         win_rates = [
-            sum(1 for t in trades if t.pnl > 0) / len(trades)
-            for trades in symbol_trades.values()
+            sum(1 for t in trades if t.pnl > 0) / len(trades) for trades in symbol_trades.values()
         ]
 
         fig = go.Figure()
@@ -285,7 +289,9 @@ class PerformanceVisualizer:
 
         # Equity Curve
         dates = [m.date for m in self.metrics.daily_metrics]
-        equity = np.cumsum([m.pnl for m in self.metrics.daily_metrics]) + self.metrics.initial_capital
+        equity = (
+            np.cumsum([m.pnl for m in self.metrics.daily_metrics]) + self.metrics.initial_capital
+        )
         fig.add_trace(
             go.Scatter(
                 x=dates,
@@ -320,8 +326,7 @@ class PerformanceVisualizer:
 
         symbols = list(symbol_trades.keys())
         win_rates = [
-            sum(1 for t in trades if t.pnl > 0) / len(trades)
-            for trades in symbol_trades.values()
+            sum(1 for t in trades if t.pnl > 0) / len(trades) for trades in symbol_trades.values()
         ]
         fig.add_trace(
             go.Bar(
@@ -367,7 +372,9 @@ class PerformanceVisualizer:
         if not PLOTLY_AVAILABLE:
             return None
 
-        durations = [t.duration.total_seconds() / 3600 for t in self.metrics.trades]  # Convert to hours
+        durations = [
+            t.duration.total_seconds() / 3600 for t in self.metrics.trades
+        ]  # Convert to hours
 
         fig = go.Figure()
         fig.add_trace(
@@ -430,9 +437,13 @@ class PerformanceVisualizer:
         slippage = []
         for trade in self.metrics.trades:
             if trade.side == "buy":
-                slippage.append((trade.entry_price - trade.expected_price) / trade.expected_price * 100)
+                slippage.append(
+                    (trade.entry_price - trade.expected_price) / trade.expected_price * 100
+                )
             else:
-                slippage.append((trade.expected_price - trade.entry_price) / trade.expected_price * 100)
+                slippage.append(
+                    (trade.expected_price - trade.entry_price) / trade.expected_price * 100
+                )
 
         fig = go.Figure()
         fig.add_trace(
@@ -452,4 +463,4 @@ class PerformanceVisualizer:
             template="plotly_white",
         )
 
-        return fig 
+        return fig

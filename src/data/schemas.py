@@ -1,4 +1,4 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator
@@ -138,4 +138,4 @@ class PerformanceMetricsSchema(BaseModel):
     sortino_ratio: float
     max_drawdown: float
     max_drawdown_percent: float
-    metadata: Dict[str, Union[str, float, int]] = Field(default_factory=dict) 
+    metadata: Dict[str, Union[str, float, int]] = Field(default_factory=dict)

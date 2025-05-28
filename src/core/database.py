@@ -208,7 +208,9 @@ class DatabaseManager:
     def save_trade(self, trade_data: Dict[str, Any]):
         """Save a trade to the database, ensuring unique trade IDs."""
         # Check if trade ID already exists
-        existing_trade = self.execute_query("SELECT id FROM trades WHERE id = ?", (trade_data["id"],))
+        existing_trade = self.execute_query(
+            "SELECT id FROM trades WHERE id = ?", (trade_data["id"],)
+        )
         if existing_trade:
             raise ValueError(f"Trade ID {trade_data['id']} already exists.")
 

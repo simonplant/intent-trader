@@ -4,12 +4,12 @@ Order Management System - Core component for handling trading orders.
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from data.schemas import MarketDataSchema, OrderSchema, PositionSchema
 
@@ -280,20 +280,20 @@ class OrderManager:
                 if order.status not in ["pending", "partially_filled"]:
                     return {
                         "status": "error",
-                        "message": f"Cannot cancel order in {order.status} status"
+                        "message": f"Cannot cancel order in {order.status} status",
                     }
-                
+
                 order.status = "cancelled"
                 order.metadata["cancelled_at"] = datetime.now(UTC)
-                
+
                 return {
                     "status": "success",
                     "message": f"Order {order_id} cancelled",
-                    "data": order.model_dump()
+                    "data": order.model_dump(),
                 }
             else:
                 return {"status": "error", "message": f"Order {order_id} not found"}
-        
+
         # Original UUID-based logic
         order = self._orders.get(order_id)
         if not order:

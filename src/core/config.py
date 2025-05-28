@@ -62,7 +62,7 @@ class ConfigManager:
 
         Returns:
             Dictionary containing configuration settings.
-            
+
         Raises:
             RuntimeError: If the configuration file cannot be loaded or is invalid.
         """
