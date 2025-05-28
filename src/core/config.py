@@ -62,12 +62,18 @@ class ConfigManager:
 
         Returns:
             Dictionary containing configuration settings.
+            
+        Raises:
+            RuntimeError: If the configuration file cannot be loaded or is invalid.
         """
         if not self.config_path.exists():
             raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
 
-        with open(self.config_path, "r") as f:
-            return yaml.safe_load(f)
+        try:
+            with open(self.config_path, "r") as f:
+                return yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            raise RuntimeError(f"Invalid configuration file: {e}")
 
     def _load_env(self):
         """Load environment variables.
@@ -102,7 +108,9 @@ class ConfigManager:
             ```
         """
         # Try environment variable first
-        env_value = os.getenv(key.upper())
+        # Convert dots to underscores for environment variable lookup
+        env_key = key.upper().replace(".", "_")
+        env_value = os.getenv(env_key)
         if env_value is not None:
             return env_value
 
