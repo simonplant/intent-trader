@@ -1,4 +1,5 @@
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 
 class ConversationManager:
     def __init__(self):
@@ -12,4 +13,4 @@ class ConversationManager:
         return self.context
 
     def update_context(self, new_context: Dict[str, Any]) -> None:
-        self.context.update(new_context) 
+        self.context.update(new_context)

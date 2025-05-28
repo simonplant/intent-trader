@@ -1,14 +1,18 @@
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from pydantic import BaseModel, validator
-from data.storage import Storage
+from datetime import datetime
+
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+
+from agents.coach_agent import CoachAgent
+from agents.execute_agent import ExecuteAgent
+from agents.focus_agent import FocusAgent
+from agents.manage_agent import ManageAgent
 from agents.market_data_agent import MarketDataAgent
 from agents.plan_agent import PlanAgent
-from agents.focus_agent import FocusAgent
-from agents.execute_agent import ExecuteAgent
-from agents.manage_agent import ManageAgent
 from agents.review_agent import ReviewAgent
-from agents.coach_agent import CoachAgent
+from data.storage import Storage
+
 
 class OptimizationParameters(BaseModel):
     capital: float
@@ -19,6 +23,7 @@ class OptimizationParameters(BaseModel):
     market_conditions: Dict[str, Any]
     trading_style: str  # "day" or "swing"
     risk_tolerance: float  # 0-1 scale
+
 
 class OptimizationResult(BaseModel):
     optimal_position_size: float
@@ -31,6 +36,7 @@ class OptimizationResult(BaseModel):
     execution_priority: int
     notes: str = ""
 
+
 class OptimizeAgent:
     def __init__(self):
         self.storage = Storage()
@@ -41,7 +47,7 @@ class OptimizeAgent:
         self.manage_agent = ManageAgent()
         self.review_agent = ReviewAgent()
         self.coach_agent = CoachAgent()
-        
+
         # Default optimization parameters
         self.default_params = OptimizationParameters(
             capital=100000,  # $100K initial capital
@@ -51,7 +57,7 @@ class OptimizeAgent:
             target_daily_pnl=0.01,  # 1% target daily return
             market_conditions={},
             trading_style="day",
-            risk_tolerance=0.5
+            risk_tolerance=0.5,
         )
 
     def execute(self, **kwargs) -> Dict[str, Any]:
@@ -61,18 +67,18 @@ class OptimizeAgent:
         try:
             # Get optimization parameters
             params = self._get_optimization_parameters(kwargs)
-            
+
             # Get current market data
             market_data = self._get_market_data()
-            
+
             # Get active plans and focus areas
             plans = self._get_active_plans()
             focus_areas = self._get_focus_areas()
-            
+
             # Get current positions and P&L
             positions = self._get_current_positions()
             daily_pnl = self._calculate_daily_pnl()
-            
+
             # Check risk limits
             risk_check = self._check_risk_limits(params, positions, daily_pnl)
             if not risk_check["status"] == "success":
@@ -96,15 +102,12 @@ class OptimizeAgent:
                     "optimization_results": [result.dict() for result in optimization_results],
                     "market_conditions": market_data,
                     "daily_pnl": daily_pnl,
-                    "risk_metrics": self._calculate_risk_metrics(params, positions)
-                }
+                    "risk_metrics": self._calculate_risk_metrics(params, positions),
+                },
             }
 
         except Exception as e:
-            return {
-                "status": "error",
-                "message": f"Optimization failed: {str(e)}"
-            }
+            return {"status": "error", "message": f"Optimization failed: {str(e)}"}
 
     def _get_optimization_parameters(self, kwargs: Dict[str, Any]) -> OptimizationParameters:
         """
@@ -150,35 +153,39 @@ class OptimizeAgent:
         Calculate today's P&L.
         """
         today = datetime.now().date()
-        trades = self.storage.get_history("trades", 
+        trades = self.storage.get_history(
+            "trades",
             start_time=datetime.combine(today, datetime.min.time()),
-            end_time=datetime.now())
+            end_time=datetime.now(),
+        )
         return sum(trade["pnl"] for trade in trades)
 
-    def _check_risk_limits(self, params: OptimizationParameters, 
-                          positions: List[Dict[str, Any]], daily_pnl: float) -> Dict[str, Any]:
+    def _check_risk_limits(
+        self,
+        params: OptimizationParameters,
+        positions: List[Dict[str, Any]],
+        daily_pnl: float,
+    ) -> Dict[str, Any]:
         """
         Check if current positions and P&L are within risk limits.
         """
         # Check daily drawdown
         if daily_pnl < -params.capital * params.max_drawdown:
-            return {
-                "status": "error",
-                "message": "Daily drawdown limit reached"
-            }
+            return {"status": "error", "message": "Daily drawdown limit reached"}
 
         # Check position concentration
         total_position_value = sum(pos["quantity"] * pos["current_price"] for pos in positions)
         if total_position_value > params.capital * params.max_position_size:
-            return {
-                "status": "error",
-                "message": "Position size limit reached"
-            }
+            return {"status": "error", "message": "Position size limit reached"}
 
         return {"status": "success"}
 
-    def _is_plan_valid(self, plan: Dict[str, Any], focus_areas: List[Dict[str, Any]],
-                      market_data: Dict[str, Any]) -> bool:
+    def _is_plan_valid(
+        self,
+        plan: Dict[str, Any],
+        focus_areas: List[Dict[str, Any]],
+        market_data: Dict[str, Any],
+    ) -> bool:
         """
         Check if a plan is valid given current market conditions and focus areas.
         """
@@ -198,8 +205,12 @@ class OptimizeAgent:
 
         return True
 
-    def _optimize_trade(self, plan: Dict[str, Any], params: OptimizationParameters,
-                       market_data: Dict[str, Any]) -> Optional[OptimizationResult]:
+    def _optimize_trade(
+        self,
+        plan: Dict[str, Any],
+        params: OptimizationParameters,
+        market_data: Dict[str, Any],
+    ) -> Optional[OptimizationResult]:
         """
         Optimize a single trade based on the plan and current conditions.
         """
@@ -241,17 +252,19 @@ class OptimizeAgent:
             expected_pnl=expected_pnl,
             confidence_score=confidence,
             execution_priority=priority,
-            notes=notes
+            notes=notes,
         )
 
-    def _calculate_position_size(self, plan: Dict[str, Any], params: OptimizationParameters,
-                               current_price: float) -> float:
+    def _calculate_position_size(
+        self, plan: Dict[str, Any], params: OptimizationParameters, current_price: float
+    ) -> float:
         """
         Calculate optimal position size based on risk parameters.
         """
         # Get risk per trade from plan or use default
-        risk_per_trade = plan.get("risk_parameters", {}).get("risk_per_trade", 
-            params.max_daily_risk * params.capital)
+        risk_per_trade = plan.get("risk_parameters", {}).get(
+            "risk_per_trade", params.max_daily_risk * params.capital
+        )
 
         # Calculate position size based on risk
         stop_loss = plan.get("risk_parameters", {}).get("stop_loss")
@@ -266,8 +279,9 @@ class OptimizeAgent:
         max_size = params.capital * params.max_position_size / current_price
         return min(position_size, max_size)
 
-    def _calculate_entry_price(self, plan: Dict[str, Any], current_price: float,
-                             market_data: Dict[str, Any]) -> float:
+    def _calculate_entry_price(
+        self, plan: Dict[str, Any], current_price: float, market_data: Dict[str, Any]
+    ) -> float:
         """
         Calculate optimal entry price based on plan and market conditions.
         """
@@ -281,8 +295,9 @@ class OptimizeAgent:
         else:
             return max(current_price, market_data["low"])
 
-    def _calculate_exit_levels(self, plan: Dict[str, Any], entry_price: float,
-                             market_data: Dict[str, Any]) -> tuple[float, float]:
+    def _calculate_exit_levels(
+        self, plan: Dict[str, Any], entry_price: float, market_data: Dict[str, Any]
+    ) -> tuple[float, float]:
         """
         Calculate optimal stop loss and take profit levels.
         """
@@ -301,15 +316,20 @@ class OptimizeAgent:
 
         return stop_loss, take_profit
 
-    def _calculate_expected_pnl(self, position_size: float, risk_reward: float,
-                              params: OptimizationParameters) -> float:
+    def _calculate_expected_pnl(
+        self, position_size: float, risk_reward: float, params: OptimizationParameters
+    ) -> float:
         """
         Calculate expected P&L for the trade.
         """
         return position_size * risk_reward * params.capital * params.max_daily_risk
 
-    def _calculate_confidence_score(self, plan: Dict[str, Any], market_data: Dict[str, Any],
-                                  params: OptimizationParameters) -> float:
+    def _calculate_confidence_score(
+        self,
+        plan: Dict[str, Any],
+        market_data: Dict[str, Any],
+        params: OptimizationParameters,
+    ) -> float:
         """
         Calculate confidence score for the trade.
         """
@@ -325,8 +345,9 @@ class OptimizeAgent:
 
         return min(confidence, 1.0)
 
-    def _calculate_execution_priority(self, confidence: float, risk_reward: float,
-                                    expected_pnl: float) -> int:
+    def _calculate_execution_priority(
+        self, confidence: float, risk_reward: float, expected_pnl: float
+    ) -> int:
         """
         Calculate execution priority for the trade.
         """
@@ -334,13 +355,14 @@ class OptimizeAgent:
         priority = int((confidence * 0.4 + risk_reward * 0.3 + expected_pnl * 0.3) * 100)
         return max(1, min(priority, 100))
 
-    def _generate_optimization_notes(self, plan: Dict[str, Any],
-                                   market_data: Dict[str, Any]) -> str:
+    def _generate_optimization_notes(
+        self, plan: Dict[str, Any], market_data: Dict[str, Any]
+    ) -> str:
         """
         Generate optimization notes for the trade.
         """
         notes = []
-        
+
         # Add plan notes
         if "notes" in plan:
             notes.append(f"Plan notes: {plan['notes']}")
@@ -353,18 +375,24 @@ class OptimizeAgent:
 
         return " | ".join(notes)
 
-    def _calculate_risk_metrics(self, params: OptimizationParameters,
-                              positions: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _calculate_risk_metrics(
+        self, params: OptimizationParameters, positions: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Calculate current risk metrics.
         """
         total_position_value = sum(pos["quantity"] * pos["current_price"] for pos in positions)
-        total_risk = sum(pos["quantity"] * abs(pos["current_price"] - pos["stop_loss"])
-                        for pos in positions if pos["stop_loss"] is not None)
+        total_risk = sum(
+            pos["quantity"] * abs(pos["current_price"] - pos["stop_loss"])
+            for pos in positions
+            if pos["stop_loss"] is not None
+        )
 
         return {
             "total_position_value": total_position_value,
             "total_risk": total_risk,
             "risk_percentage": total_risk / params.capital if params.capital > 0 else 0,
-            "position_concentration": total_position_value / params.capital if params.capital > 0 else 0
-        } 
+            "position_concentration": (
+                total_position_value / params.capital if params.capital > 0 else 0
+            ),
+        }

@@ -1,19 +1,21 @@
 # Intent Trader IAA - Minimal Dependencies
 # Core dependencies for chat-native trading assistant
 
-# Core Python packages
-pydantic>=2.0.0
+# Core Python packages (pinned to secure versions)
+pydantic>=2.11.5
 python-dotenv>=1.0.0
-requests>=2.31.0
-aiohttp>=3.9.0
+requests>=2.32.3  # CVE-2024-35195 fixed in 2.32.3
+urllib3>=2.4.0    # Latest secure version
+certifi>=2025.4.26  # Latest certificate bundle
+aiohttp>=3.12.2   # Latest secure version
 
 # Data processing (essential for trading)
 pandas>=2.0.0
 numpy>=1.24.0
 
 # Optional: Web interface (if needed for development)
-fastapi>=0.104.0
-uvicorn>=0.24.0
+fastapi>=0.115.12  # Latest secure version
+uvicorn>=0.34.2    # Latest secure version
 
 # Development dependencies
 pytest>=7.4.0

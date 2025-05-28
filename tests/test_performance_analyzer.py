@@ -1,7 +1,10 @@
-import pytest
 from datetime import datetime, timedelta
-from data.schemas import TradePlanSchema, PositionSchema, OrderSchema
+
+import pytest
+
 from analysis.performance_analyzer import PerformanceAnalyzer, TradeMetrics
+from data.schemas import OrderSchema, PositionSchema, TradePlanSchema
+
 
 @pytest.fixture
 def sample_trade_plan():
@@ -13,8 +16,9 @@ def sample_trade_plan():
         stop_loss=145.0,
         take_profit=160.0,
         quantity=100,
-        strategy="momentum"
+        strategy="momentum",
     )
+
 
 @pytest.fixture
 def sample_position():
@@ -28,14 +32,15 @@ def sample_position():
         take_profit=160.0,
         pnl=500.0,
         pnl_percent=3.33,
-        status="open"
+        status="open",
     )
+
 
 @pytest.fixture
 def sample_orders():
     entry_time = datetime.now()
     exit_time = entry_time + timedelta(hours=2)
-    
+
     return [
         OrderSchema(
             order_id="test_order_1",
@@ -46,10 +51,7 @@ def sample_orders():
             quantity=100,
             status="filled",
             timestamp=entry_time,
-            metadata={
-                "execution_price": 150.0,
-                "executed_at": entry_time
-            }
+            metadata={"execution_price": 150.0, "executed_at": entry_time},
         ),
         OrderSchema(
             order_id="test_order_2",
@@ -60,24 +62,23 @@ def sample_orders():
             quantity=100,
             status="filled",
             timestamp=exit_time,
-            metadata={
-                "execution_price": 155.0,
-                "executed_at": exit_time
-            }
-        )
+            metadata={"execution_price": 155.0, "executed_at": exit_time},
+        ),
     ]
+
 
 @pytest.fixture
 def performance_analyzer():
     return PerformanceAnalyzer()
 
+
 def test_add_trade(performance_analyzer, sample_trade_plan, sample_position, sample_orders):
     """Test adding a trade to the analyzer"""
     performance_analyzer.add_trade(sample_trade_plan, sample_position, sample_orders)
-    
+
     # Check that trade was added
     assert len(performance_analyzer.trades) == 1
-    
+
     # Check trade metrics
     trade = performance_analyzer.trades[0]
     assert trade.symbol == "AAPL"
@@ -91,14 +92,15 @@ def test_add_trade(performance_analyzer, sample_trade_plan, sample_position, sam
     assert trade.execution_quality > 0
     assert trade.plan_adherence > 0
 
+
 def test_daily_metrics(performance_analyzer, sample_trade_plan, sample_position, sample_orders):
     """Test daily metrics calculation"""
     performance_analyzer.add_trade(sample_trade_plan, sample_position, sample_orders)
-    
+
     # Get daily metrics
     date = sample_orders[0].timestamp.date()
     daily_metrics = performance_analyzer.get_daily_metrics(date)
-    
+
     assert daily_metrics is not None
     assert daily_metrics.total_trades == 1
     assert daily_metrics.winning_trades == 1
@@ -110,13 +112,14 @@ def test_daily_metrics(performance_analyzer, sample_trade_plan, sample_position,
     assert daily_metrics.average_loss == 0.0
     assert daily_metrics.profit_factor > 0
 
+
 def test_overall_metrics(performance_analyzer, sample_trade_plan, sample_position, sample_orders):
     """Test overall metrics calculation"""
     performance_analyzer.add_trade(sample_trade_plan, sample_position, sample_orders)
-    
+
     # Get overall metrics
     overall_metrics = performance_analyzer.get_overall_metrics()
-    
+
     assert overall_metrics is not None
     assert overall_metrics.total_trades == 1
     assert overall_metrics.winning_trades == 1
@@ -131,13 +134,14 @@ def test_overall_metrics(performance_analyzer, sample_trade_plan, sample_positio
     assert overall_metrics.sharpe_ratio >= 0
     assert overall_metrics.sortino_ratio >= 0
 
+
 def test_symbol_metrics(performance_analyzer, sample_trade_plan, sample_position, sample_orders):
     """Test symbol-specific metrics calculation"""
     performance_analyzer.add_trade(sample_trade_plan, sample_position, sample_orders)
-    
+
     # Get symbol metrics
     symbol_metrics = performance_analyzer.get_symbol_metrics("AAPL")
-    
+
     assert symbol_metrics is not None
     assert symbol_metrics["total_trades"] == 1
     assert symbol_metrics["winning_trades"] == 1
@@ -148,13 +152,14 @@ def test_symbol_metrics(performance_analyzer, sample_trade_plan, sample_position
     assert symbol_metrics["average_loss"] == 0.0
     assert symbol_metrics["profit_factor"] > 0
 
+
 def test_strategy_metrics(performance_analyzer, sample_trade_plan, sample_position, sample_orders):
     """Test strategy-specific metrics calculation"""
     performance_analyzer.add_trade(sample_trade_plan, sample_position, sample_orders)
-    
+
     # Get strategy metrics
     strategy_metrics = performance_analyzer.get_strategy_metrics("momentum")
-    
+
     assert strategy_metrics is not None
     assert strategy_metrics["total_trades"] == 1
     assert strategy_metrics["winning_trades"] == 1
@@ -165,6 +170,7 @@ def test_strategy_metrics(performance_analyzer, sample_trade_plan, sample_positi
     assert strategy_metrics["average_loss"] == 0.0
     assert strategy_metrics["profit_factor"] > 0
 
+
 def test_multiple_trades(performance_analyzer):
     """Test adding multiple trades"""
     # Create multiple trades
@@ -172,7 +178,7 @@ def test_multiple_trades(performance_analyzer):
     for i in range(3):
         entry_time = datetime.now() + timedelta(hours=i)
         exit_time = entry_time + timedelta(hours=1)
-        
+
         plan = TradePlanSchema(
             plan_id=f"test_plan_{i}",
             symbol="AAPL",
@@ -181,9 +187,9 @@ def test_multiple_trades(performance_analyzer):
             stop_loss=145.0,
             take_profit=160.0,
             quantity=100,
-            strategy="momentum"
+            strategy="momentum",
         )
-        
+
         position = PositionSchema(
             position_id=f"test_position_{i}",
             symbol="AAPL",
@@ -194,9 +200,9 @@ def test_multiple_trades(performance_analyzer):
             take_profit=160.0,
             pnl=500.0,
             pnl_percent=3.33,
-            status="open"
+            status="open",
         )
-        
+
         orders = [
             OrderSchema(
                 order_id=f"test_order_{i}_1",
@@ -207,10 +213,7 @@ def test_multiple_trades(performance_analyzer):
                 quantity=100,
                 status="filled",
                 timestamp=entry_time,
-                metadata={
-                    "execution_price": 150.0,
-                    "executed_at": entry_time
-                }
+                metadata={"execution_price": 150.0, "executed_at": entry_time},
             ),
             OrderSchema(
                 order_id=f"test_order_{i}_2",
@@ -221,19 +224,16 @@ def test_multiple_trades(performance_analyzer):
                 quantity=100,
                 status="filled",
                 timestamp=exit_time,
-                metadata={
-                    "execution_price": 155.0,
-                    "executed_at": exit_time
-                }
-            )
+                metadata={"execution_price": 155.0, "executed_at": exit_time},
+            ),
         ]
-        
+
         trades.append((plan, position, orders))
-        
+
     # Add trades to analyzer
     for plan, position, orders in trades:
         performance_analyzer.add_trade(plan, position, orders)
-        
+
     # Check overall metrics
     overall_metrics = performance_analyzer.get_overall_metrics()
     assert overall_metrics.total_trades == 3
@@ -241,11 +241,12 @@ def test_multiple_trades(performance_analyzer):
     assert overall_metrics.total_pnl == 1500.0
     assert overall_metrics.total_pnl_percent == 10.0
 
+
 def test_losing_trade(performance_analyzer):
     """Test adding a losing trade"""
     entry_time = datetime.now()
     exit_time = entry_time + timedelta(hours=1)
-    
+
     plan = TradePlanSchema(
         plan_id="test_plan_1",
         symbol="AAPL",
@@ -254,9 +255,9 @@ def test_losing_trade(performance_analyzer):
         stop_loss=145.0,
         take_profit=160.0,
         quantity=100,
-        strategy="momentum"
+        strategy="momentum",
     )
-    
+
     position = PositionSchema(
         position_id="test_position_1",
         symbol="AAPL",
@@ -267,9 +268,9 @@ def test_losing_trade(performance_analyzer):
         take_profit=160.0,
         pnl=-500.0,
         pnl_percent=-3.33,
-        status="closed"
+        status="closed",
     )
-    
+
     orders = [
         OrderSchema(
             order_id="test_order_1",
@@ -280,10 +281,7 @@ def test_losing_trade(performance_analyzer):
             quantity=100,
             status="filled",
             timestamp=entry_time,
-            metadata={
-                "execution_price": 150.0,
-                "executed_at": entry_time
-            }
+            metadata={"execution_price": 150.0, "executed_at": entry_time},
         ),
         OrderSchema(
             order_id="test_order_2",
@@ -294,21 +292,18 @@ def test_losing_trade(performance_analyzer):
             quantity=100,
             status="filled",
             timestamp=exit_time,
-            metadata={
-                "execution_price": 145.0,
-                "executed_at": exit_time
-            }
-        )
+            metadata={"execution_price": 145.0, "executed_at": exit_time},
+        ),
     ]
-    
+
     performance_analyzer.add_trade(plan, position, orders)
-    
+
     # Check trade metrics
     trade = performance_analyzer.trades[0]
     assert trade.win is False
     assert trade.pnl == -500.0
     assert trade.pnl_percent == -3.33
-    
+
     # Check overall metrics
     overall_metrics = performance_analyzer.get_overall_metrics()
     assert overall_metrics.winning_trades == 0
@@ -317,4 +312,4 @@ def test_losing_trade(performance_analyzer):
     assert overall_metrics.total_pnl == -500.0
     assert overall_metrics.total_pnl_percent == -3.33
     assert overall_metrics.average_win == 0.0
-    assert overall_metrics.average_loss == -500.0 
+    assert overall_metrics.average_loss == -500.0

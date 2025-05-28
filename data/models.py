@@ -1,6 +1,8 @@
-from typing import Dict, Any, List, Optional
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, validator
+
 
 class MarketData(BaseModel):
     symbol: str
@@ -11,6 +13,7 @@ class MarketData(BaseModel):
     high: float
     low: float
     timestamp: datetime
+
 
 class Order(BaseModel):
     order_id: str
@@ -23,6 +26,7 @@ class Order(BaseModel):
     status: str
     timestamp: datetime
     notes: str = ""
+
 
 class Position(BaseModel):
     position_id: str
@@ -37,6 +41,7 @@ class Position(BaseModel):
     pnl_percent: float
     timestamp: datetime
     notes: str = ""
+
 
 class Trade(BaseModel):
     trade_id: str
@@ -53,6 +58,7 @@ class Trade(BaseModel):
     exit_reason: str
     notes: str = ""
 
+
 class Analysis(BaseModel):
     analysis_id: str
     symbol: str
@@ -63,6 +69,7 @@ class Analysis(BaseModel):
     timestamp: datetime
     source: str
     notes: str = ""
+
 
 class Plan(BaseModel):
     plan_id: str
@@ -75,6 +82,7 @@ class Plan(BaseModel):
     timestamp: datetime
     notes: str = ""
 
+
 class FocusArea(BaseModel):
     focus_id: str
     symbol: str
@@ -83,6 +91,7 @@ class FocusArea(BaseModel):
     market_conditions: Dict[str, Any]
     timestamp: datetime
     notes: str = ""
+
 
 class ExecutionRules(BaseModel):
     execution_id: str
@@ -93,6 +102,7 @@ class ExecutionRules(BaseModel):
     timestamp: datetime
     notes: str = ""
 
+
 class ManagementRules(BaseModel):
     management_id: str
     position_id: str
@@ -101,6 +111,7 @@ class ManagementRules(BaseModel):
     risk_management: Dict[str, Any]
     timestamp: datetime
     notes: str = ""
+
 
 class TradeReview(BaseModel):
     review_id: str
@@ -111,6 +122,7 @@ class TradeReview(BaseModel):
     timestamp: datetime
     notes: str = ""
 
+
 class CoachingInsights(BaseModel):
     insights_id: str
     review_id: str
@@ -120,13 +132,14 @@ class CoachingInsights(BaseModel):
     timestamp: datetime
     notes: str = ""
 
+
 class AgentResponse(BaseModel):
     status: str
     message: str
     data: Optional[Dict[str, Any]] = None
 
-    @validator('status')
+    @validator("status")
     def validate_status(cls, v):
-        if v not in ['success', 'error', 'warning']:
-            raise ValueError('Status must be success, error, or warning')
-        return v 
+        if v not in ["success", "error", "warning"]:
+            raise ValueError("Status must be success, error, or warning")
+        return v

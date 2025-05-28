@@ -1,4 +1,5 @@
-from typing import Dict, Any
+from typing import Any, Dict
+
 
 class FocusAgent:
     def execute(self, **kwargs) -> Dict[str, Any]:
@@ -10,9 +11,5 @@ class FocusAgent:
         return {
             "status": "success",
             "message": "Focus areas identified",
-            "data": {
-                "key_levels": [],
-                "active_setups": [],
-                "market_conditions": {}
-            }
-        } 
+            "data": {"key_levels": [], "active_setups": [], "market_conditions": {}},
+        }

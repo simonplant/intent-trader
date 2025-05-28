@@ -1,7 +1,9 @@
-from typing import Dict, Any, Optional
-from actions.clean_transcript import CleanTranscriptAction
+from typing import Any, Dict, Optional
+
 from actions.analyze_transcript import AnalyzeTranscriptAction
+from actions.clean_transcript import CleanTranscriptAction
 from actions.generate_plan import GeneratePlanAction
+
 
 class ActionDispatcher:
     def __init__(self):
@@ -15,4 +17,4 @@ class ActionDispatcher:
         action = self.actions.get(action_name)
         if action:
             return action.execute(**kwargs)
-        return None 
+        return None

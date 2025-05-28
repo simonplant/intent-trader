@@ -1,7 +1,9 @@
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+
 
 class OrderType(str, Enum):
     MARKET = "market"
@@ -10,9 +12,11 @@ class OrderType(str, Enum):
     STOP_LIMIT = "stop_limit"
     TRAILING_STOP = "trailing_stop"
 
+
 class OrderSide(str, Enum):
     BUY = "buy"
     SELL = "sell"
+
 
 class OrderStatus(str, Enum):
     PENDING = "pending"
@@ -20,6 +24,7 @@ class OrderStatus(str, Enum):
     CANCELLED = "cancelled"
     REJECTED = "rejected"
     PARTIALLY_FILLED = "partially_filled"
+
 
 class Order(BaseModel):
     order_id: str
@@ -35,6 +40,7 @@ class Order(BaseModel):
     average_fill_price: Optional[float] = None
     notes: str = ""
 
+
 class OrderAgent:
     def __init__(self):
         self.orders: Dict[str, Order] = {}
@@ -45,7 +51,7 @@ class OrderAgent:
         Handles order management operations.
         """
         action = kwargs.get("action", "list")
-        
+
         if action == "create":
             return self._create_order(**kwargs)
         elif action == "cancel":
@@ -55,10 +61,7 @@ class OrderAgent:
         elif action == "list":
             return self._list_orders(**kwargs)
         else:
-            return {
-                "status": "error",
-                "message": f"Unknown action: {action}"
-            }
+            return {"status": "error", "message": f"Unknown action: {action}"}
 
     def _create_order(self, **kwargs) -> Dict[str, Any]:
         """
@@ -72,14 +75,14 @@ class OrderAgent:
             side=OrderSide.BUY,
             quantity=kwargs.get("quantity", 0.0),
             status=OrderStatus.PENDING,
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
-        
+
         self.orders[order.order_id] = order
         return {
             "status": "success",
             "message": "Order created",
-            "data": {"order": order.dict()}
+            "data": {"order": order.dict()},
         }
 
     def _cancel_order(self, **kwargs) -> Dict[str, Any]:
@@ -93,12 +96,9 @@ class OrderAgent:
             return {
                 "status": "success",
                 "message": "Order cancelled",
-                "data": {"order": order.dict()}
+                "data": {"order": order.dict()},
             }
-        return {
-            "status": "error",
-            "message": f"Order not found: {order_id}"
-        }
+        return {"status": "error", "message": f"Order not found: {order_id}"}
 
     def _modify_order(self, **kwargs) -> Dict[str, Any]:
         """
@@ -111,12 +111,9 @@ class OrderAgent:
             return {
                 "status": "success",
                 "message": "Order modified",
-                "data": {"order": order.dict()}
+                "data": {"order": order.dict()},
             }
-        return {
-            "status": "error",
-            "message": f"Order not found: {order_id}"
-        }
+        return {"status": "error", "message": f"Order not found: {order_id}"}
 
     def _list_orders(self, **kwargs) -> Dict[str, Any]:
         """
@@ -124,18 +121,21 @@ class OrderAgent:
         """
         status = kwargs.get("status")
         orders = [
-            order.dict() for order in self.orders.values()
-            if not status or order.status == status
+            order.dict() for order in self.orders.values() if not status or order.status == status
         ]
         return {
             "status": "success",
             "message": "Orders listed",
-            "data": {"orders": orders}
+            "data": {"orders": orders},
         }
 
-    def update_order_status(self, order_id: str, status: OrderStatus, 
-                          filled_quantity: float = 0.0, 
-                          average_fill_price: Optional[float] = None) -> None:
+    def update_order_status(
+        self,
+        order_id: str,
+        status: OrderStatus,
+        filled_quantity: float = 0.0,
+        average_fill_price: Optional[float] = None,
+    ) -> None:
         """
         Updates the status of an order.
         """
@@ -144,7 +144,11 @@ class OrderAgent:
             order.status = status
             order.filled_quantity = filled_quantity
             order.average_fill_price = average_fill_price
-            
-            if status in [OrderStatus.FILLED, OrderStatus.CANCELLED, OrderStatus.REJECTED]:
+
+            if status in [
+                OrderStatus.FILLED,
+                OrderStatus.CANCELLED,
+                OrderStatus.REJECTED,
+            ]:
                 self.order_history.append(order)
-                del self.orders[order_id] 
+                del self.orders[order_id]

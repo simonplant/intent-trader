@@ -1,11 +1,14 @@
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel
+
 
 class PositionSide(str, Enum):
     LONG = "long"
     SHORT = "short"
+
 
 class Position(BaseModel):
     position_id: str
@@ -21,6 +24,7 @@ class Position(BaseModel):
     take_profit: Optional[float] = None
     notes: str = ""
 
+
 class PositionAgent:
     def __init__(self):
         self.positions: Dict[str, Position] = {}
@@ -31,7 +35,7 @@ class PositionAgent:
         Handles position management operations.
         """
         action = kwargs.get("action", "list")
-        
+
         if action == "open":
             return self._open_position(**kwargs)
         elif action == "close":
@@ -41,10 +45,7 @@ class PositionAgent:
         elif action == "list":
             return self._list_positions(**kwargs)
         else:
-            return {
-                "status": "error",
-                "message": f"Unknown action: {action}"
-            }
+            return {"status": "error", "message": f"Unknown action: {action}"}
 
     def _open_position(self, **kwargs) -> Dict[str, Any]:
         """
@@ -58,14 +59,14 @@ class PositionAgent:
             quantity=kwargs.get("quantity", 0.0),
             entry_price=kwargs.get("price", 0.0),
             current_price=kwargs.get("price", 0.0),
-            timestamp=datetime.now()
+            timestamp=datetime.now(),
         )
-        
+
         self.positions[position.position_id] = position
         return {
             "status": "success",
             "message": "Position opened",
-            "data": {"position": position.dict()}
+            "data": {"position": position.dict()},
         }
 
     def _close_position(self, **kwargs) -> Dict[str, Any]:
@@ -82,12 +83,9 @@ class PositionAgent:
             return {
                 "status": "success",
                 "message": "Position closed",
-                "data": {"position": position.dict()}
+                "data": {"position": position.dict()},
             }
-        return {
-            "status": "error",
-            "message": f"Position not found: {position_id}"
-        }
+        return {"status": "error", "message": f"Position not found: {position_id}"}
 
     def _update_position(self, **kwargs) -> Dict[str, Any]:
         """
@@ -107,12 +105,9 @@ class PositionAgent:
             return {
                 "status": "success",
                 "message": "Position updated",
-                "data": {"position": position.dict()}
+                "data": {"position": position.dict()},
             }
-        return {
-            "status": "error",
-            "message": f"Position not found: {position_id}"
-        }
+        return {"status": "error", "message": f"Position not found: {position_id}"}
 
     def _list_positions(self, **kwargs) -> Dict[str, Any]:
         """
@@ -120,13 +115,14 @@ class PositionAgent:
         """
         symbol = kwargs.get("symbol")
         positions = [
-            position.dict() for position in self.positions.values()
+            position.dict()
+            for position in self.positions.values()
             if not symbol or position.symbol == symbol
         ]
         return {
             "status": "success",
             "message": "Positions listed",
-            "data": {"positions": positions}
+            "data": {"positions": positions},
         }
 
     def _calculate_pnl(self, position: Position) -> float:
@@ -145,4 +141,4 @@ class PositionAgent:
         for position in self.positions.values():
             if position.symbol in market_data:
                 position.current_price = market_data[position.symbol]
-                position.unrealized_pnl = self._calculate_pnl(position) 
+                position.unrealized_pnl = self._calculate_pnl(position)

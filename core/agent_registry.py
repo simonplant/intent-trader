@@ -1,17 +1,16 @@
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 from agents.analyst_agent import AnalystAgent
-from agents.conviction_classifier_agent import ConvictionClassifierAgent
-from agents.transcript_cleaner_agent import TranscriptCleanerAgent
-from agents.plan_agent import PlanAgent
-from agents.focus_agent import FocusAgent
-from agents.execute_agent import ExecuteAgent
-from agents.manage_agent import ManageAgent
-from agents.review_agent import ReviewAgent
 from agents.coach_agent import CoachAgent
+from agents.conviction_classifier_agent import ConvictionClassifierAgent
+from agents.execute_agent import ExecuteAgent
+from agents.focus_agent import FocusAgent
+from agents.manage_agent import ManageAgent
 from agents.market_data_agent import MarketDataAgent
-from agents.order_agent import OrderAgent
-from agents.position_agent import PositionAgent
 from agents.optimize_agent import OptimizeAgent
+from agents.plan_agent import PlanAgent
+from agents.review_agent import ReviewAgent
+
 
 class AgentRegistry:
     def __init__(self):
@@ -34,7 +33,7 @@ class AgentRegistry:
             "Analysis": {
                 "analyst": self.analyst_agent,
                 "conviction_classifier": self.conviction_classifier_agent,
-                "market_data": self.market_data_agent
+                "market_data": self.market_data_agent,
             },
             "PFEMRC": {
                 "plan": self.plan_agent,
@@ -43,8 +42,8 @@ class AgentRegistry:
                 "manage": self.manage_agent,
                 "review": self.review_agent,
                 "coach": self.coach_agent,
-                "optimize": self.optimize_agent
-            }
+                "optimize": self.optimize_agent,
+            },
         }
 
     def get_agent(self, category: str, name: str) -> Any:
@@ -79,4 +78,4 @@ class AgentRegistry:
             if category not in self.agents:
                 raise ValueError(f"Unknown agent category: {category}")
             return {category: list(self.agents[category].keys())}
-        return {cat: list(agents.keys()) for cat, agents in self.agents.items()} 
+        return {cat: list(agents.keys()) for cat, agents in self.agents.items()}

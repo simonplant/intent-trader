@@ -1,7 +1,10 @@
-import pytest
 from datetime import datetime
-from agents.optimize_agent import OptimizeAgent, OptimizationParameters
-from data.schemas import TradePlanSchema, MarketDataSchema
+
+import pytest
+
+from agents.optimize_agent import OptimizationParameters, OptimizeAgent
+from data.schemas import MarketDataSchema, TradePlanSchema
+
 
 def test_optimize_agent_initialization():
     """Test OptimizeAgent initialization"""
@@ -16,10 +19,11 @@ def test_optimize_agent_initialization():
     assert agent.review_agent is not None
     assert agent.coach_agent is not None
 
+
 def test_optimize_trade_with_valid_inputs(sample_trade_plan, sample_market_data):
     """Test trade optimization with valid inputs"""
     agent = OptimizeAgent()
-    
+
     # Create optimization parameters
     params = OptimizationParameters(
         capital=100000,
@@ -29,7 +33,7 @@ def test_optimize_trade_with_valid_inputs(sample_trade_plan, sample_market_data)
         target_daily_pnl=0.01,
         market_conditions={},
         trading_style="day",
-        risk_tolerance=0.5
+        risk_tolerance=0.5,
     )
 
     # Convert sample data to dict format
@@ -37,21 +41,17 @@ def test_optimize_trade_with_valid_inputs(sample_trade_plan, sample_market_data)
     market_data_dict = {sample_market_data.symbol: sample_market_data.dict()}
 
     # Execute optimization
-    result = agent.execute(
-        plan=plan_dict,
-        market_data=market_data_dict,
-        **params.dict()
-    )
+    result = agent.execute(plan=plan_dict, market_data=market_data_dict, **params.dict())
 
     # Verify result structure
     assert result["status"] == "success"
     assert "data" in result
     assert "optimization_results" in result["data"]
-    
+
     # Verify optimization results
     opt_results = result["data"]["optimization_results"]
     assert len(opt_results) > 0
-    
+
     # Verify first optimization result
     first_result = opt_results[0]
     assert "optimal_position_size" in first_result
@@ -64,10 +64,11 @@ def test_optimize_trade_with_valid_inputs(sample_trade_plan, sample_market_data)
     assert "execution_priority" in first_result
     assert "notes" in first_result
 
+
 def test_optimize_trade_with_invalid_inputs():
     """Test trade optimization with invalid inputs"""
     agent = OptimizeAgent()
-    
+
     # Test with missing plan
     result = agent.execute(market_data={})
     assert result["status"] == "error"
@@ -78,10 +79,11 @@ def test_optimize_trade_with_invalid_inputs():
     assert result["status"] == "error"
     assert "message" in result
 
+
 def test_position_size_calculation(sample_trade_plan, sample_market_data):
     """Test position size calculation"""
     agent = OptimizeAgent()
-    
+
     params = OptimizationParameters(
         capital=100000,
         max_daily_risk=0.02,
@@ -90,22 +92,21 @@ def test_position_size_calculation(sample_trade_plan, sample_market_data):
         target_daily_pnl=0.01,
         market_conditions={},
         trading_style="day",
-        risk_tolerance=0.5
+        risk_tolerance=0.5,
     )
 
     position_size = agent._calculate_position_size(
-        sample_trade_plan.dict(),
-        params,
-        sample_market_data.price
+        sample_trade_plan.dict(), params, sample_market_data.price
     )
 
     assert position_size > 0
     assert position_size <= params.capital * params.max_position_size / sample_market_data.price
 
+
 def test_confidence_score_calculation(sample_trade_plan, sample_market_data):
     """Test confidence score calculation"""
     agent = OptimizeAgent()
-    
+
     params = OptimizationParameters(
         capital=100000,
         max_daily_risk=0.02,
@@ -114,37 +115,32 @@ def test_confidence_score_calculation(sample_trade_plan, sample_market_data):
         target_daily_pnl=0.01,
         market_conditions={},
         trading_style="day",
-        risk_tolerance=0.5
+        risk_tolerance=0.5,
     )
 
     confidence = agent._calculate_confidence_score(
-        sample_trade_plan.dict(),
-        sample_market_data.dict(),
-        params
+        sample_trade_plan.dict(), sample_market_data.dict(), params
     )
 
     assert 0 <= confidence <= 1
 
+
 def test_execution_priority_calculation():
     """Test execution priority calculation"""
     agent = OptimizeAgent()
-    
+
     priority = agent._calculate_execution_priority(
-        confidence=0.8,
-        risk_reward=2.0,
-        expected_pnl=1000.0
+        confidence=0.8, risk_reward=2.0, expected_pnl=1000.0
     )
 
     assert 1 <= priority <= 100
 
+
 def test_optimization_notes_generation(sample_trade_plan, sample_market_data):
     """Test optimization notes generation"""
     agent = OptimizeAgent()
-    
-    notes = agent._generate_optimization_notes(
-        sample_trade_plan.dict(),
-        sample_market_data.dict()
-    )
+
+    notes = agent._generate_optimization_notes(sample_trade_plan.dict(), sample_market_data.dict())
 
     assert isinstance(notes, str)
-    assert len(notes) > 0 
+    assert len(notes) > 0

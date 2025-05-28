@@ -1,1 +1,1 @@
-"""Intent Trader - Core package.""" 
+"""Intent Trader - Core package."""
