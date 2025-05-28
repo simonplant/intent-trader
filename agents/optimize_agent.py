@@ -99,7 +99,7 @@ class OptimizeAgent:
                 "status": "success",
                 "message": "Optimization completed",
                 "data": {
-                    "optimization_results": [result.dict() for result in optimization_results],
+                    "optimization_results": [result.model_dump() for result in optimization_results],
                     "market_conditions": market_data,
                     "daily_pnl": daily_pnl,
                     "risk_metrics": self._calculate_risk_metrics(params, positions),
@@ -113,7 +113,7 @@ class OptimizeAgent:
         """
         Get optimization parameters from kwargs or use defaults.
         """
-        params = self.default_params.dict()
+        params = self.default_params.model_dump()
         params.update(kwargs)
         return OptimizationParameters(**params)
 

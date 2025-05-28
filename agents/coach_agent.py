@@ -66,9 +66,9 @@ class CoachAgent:
                 "status": "success",
                 "message": "Coaching insights generated",
                 "data": {
-                    "improvement_areas": [area.dict() for area in improvement_areas],
-                    "best_practices": [practice.dict() for practice in best_practices],
-                    "development_plan": development_plan.dict(),
+                    "improvement_areas": [area.model_dump() for area in improvement_areas],
+                    "best_practices": [practice.model_dump() for practice in best_practices],
+                    "development_plan": development_plan.model_dump(),
                 },
             }
 

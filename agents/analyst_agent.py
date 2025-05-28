@@ -19,7 +19,7 @@ class AnalystAgent:
         return {
             "status": "success",
             "message": "Analysis completed",
-            "data": analysis.dict(),
+            "data": analysis.model_dump(),
         }
 
     def _analyze_content(self, content: str, source: str) -> Analysis:

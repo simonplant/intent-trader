@@ -66,7 +66,7 @@ class PositionAgent:
         return {
             "status": "success",
             "message": "Position opened",
-            "data": {"position": position.dict()},
+            "data": {"position": position.model_dump()},
         }
 
     def _close_position(self, **kwargs) -> Dict[str, Any]:
@@ -83,7 +83,7 @@ class PositionAgent:
             return {
                 "status": "success",
                 "message": "Position closed",
-                "data": {"position": position.dict()},
+                "data": {"position": position.model_dump()},
             }
         return {"status": "error", "message": f"Position not found: {position_id}"}
 
@@ -105,7 +105,7 @@ class PositionAgent:
             return {
                 "status": "success",
                 "message": "Position updated",
-                "data": {"position": position.dict()},
+                "data": {"position": position.model_dump()},
             }
         return {"status": "error", "message": f"Position not found: {position_id}"}
 
@@ -115,7 +115,7 @@ class PositionAgent:
         """
         symbol = kwargs.get("symbol")
         positions = [
-            position.dict()
+            position.model_dump()
             for position in self.positions.values()
             if not symbol or position.symbol == symbol
         ]

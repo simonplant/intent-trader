@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from data.schemas import MarketDataSchema, OrderSchema, PositionSchema
 
@@ -121,8 +121,7 @@ class OrderParameters(BaseModel):
             raise ValueError("Stop loss and take profit must be positive")
         return v
 
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class OrderManager:

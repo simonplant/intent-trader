@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 
 class MarketData(BaseModel):
@@ -138,7 +138,8 @@ class AgentResponse(BaseModel):
     message: str
     data: Optional[Dict[str, Any]] = None
 
-    @validator("status")
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         if v not in ["success", "error", "warning"]:
             raise ValueError("Status must be success, error, or warning")

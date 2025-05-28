@@ -57,7 +57,7 @@ class ReviewAgent:
                 "status": "success",
                 "message": "Trade review completed",
                 "data": {
-                    "metrics": metrics.dict(),
+                    "metrics": metrics.model_dump(),
                     "execution_analysis": execution_analysis,
                     "management_analysis": management_analysis,
                     "trades": trades,

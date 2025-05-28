@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from brokers.test_broker import TestBroker
 from data.storage import Storage
@@ -15,15 +15,17 @@ class ManagementRequest(BaseModel):
     take_profit: Optional[float] = None
     notes: str = ""
 
-    @validator("quantity")
-    def validate_quantity(cls, v, values):
+    @field_validator("quantity")
+    @classmethod
+    def validate_quantity(cls, v, info):
         if v is not None and v <= 0:
             raise ValueError("Quantity must be positive")
-        if "action" in values and values["action"] == "scale" and v is None:
+        if info.data.get("action") == "scale" and v is None:
             raise ValueError("Scale action requires quantity")
         return v
 
-    @validator("stop_loss", "take_profit")
+    @field_validator("stop_loss", "take_profit")
+    @classmethod
     def validate_price_levels(cls, v):
         if v is not None and v <= 0:
             raise ValueError("Price levels must be positive")

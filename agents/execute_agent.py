@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator
 
 from brokers.test_broker import TestBroker
 from data.storage import Storage
@@ -18,25 +18,28 @@ class ExecutionRequest(BaseModel):
     take_profit: Optional[float] = None
     notes: str = ""
 
-    @validator("quantity")
+    @field_validator("quantity")
+    @classmethod
     def validate_quantity(cls, v):
         if v <= 0:
             raise ValueError("Quantity must be positive")
         return v
 
-    @validator("price")
-    def validate_price(cls, v, values):
+    @field_validator("price")
+    @classmethod
+    def validate_price(cls, v, info):
         if v is not None and v <= 0:
             raise ValueError("Price must be positive")
-        if "order_type" in values and values["order_type"] == "limit" and v is None:
+        if info.data.get("order_type") == "limit" and v is None:
             raise ValueError("Limit orders require a price")
         return v
 
-    @validator("stop_price")
-    def validate_stop_price(cls, v, values):
+    @field_validator("stop_price")
+    @classmethod
+    def validate_stop_price(cls, v, info):
         if v is not None and v <= 0:
             raise ValueError("Stop price must be positive")
-        if "order_type" in values and values["order_type"] in ["stop", "stop_limit"] and v is None:
+        if info.data.get("order_type") in ["stop", "stop_limit"] and v is None:
             raise ValueError("Stop orders require a stop price")
         return v
 

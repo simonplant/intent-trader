@@ -44,7 +44,7 @@ class MarketDataAgent:
         for symbol in self.watchlist:
             data = self._get_symbol_data(symbol)
             if data:
-                market_data[symbol] = data.dict()
+                market_data[symbol] = data.model_dump()
 
         return {
             "status": "success",

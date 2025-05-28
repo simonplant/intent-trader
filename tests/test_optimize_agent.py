@@ -37,8 +37,8 @@ def test_optimize_trade_with_valid_inputs(sample_trade_plan, sample_market_data)
     )
 
     # Convert sample data to dict format
-    plan_dict = sample_trade_plan.dict()
-    market_data_dict = {sample_market_data.symbol: sample_market_data.dict()}
+    plan_dict = sample_trade_plan.model_dump()
+    market_data_dict = {sample_market_data.symbol: sample_market_data.model_dump()}
 
     # Execute optimization with a single plan
     # Pass the plan directly since Storage doesn't have get_active_plans
@@ -91,7 +91,7 @@ def test_position_size_calculation(sample_trade_plan, sample_market_data):
     )
 
     position_size = agent._calculate_position_size(
-        sample_trade_plan.dict(), params, sample_market_data.price
+        sample_trade_plan.model_dump(), params, sample_market_data.price
     )
 
     assert position_size > 0
@@ -114,7 +114,7 @@ def test_confidence_score_calculation(sample_trade_plan, sample_market_data):
     )
 
     confidence = agent._calculate_confidence_score(
-        sample_trade_plan.dict(), sample_market_data.dict(), params
+        sample_trade_plan.model_dump(), sample_market_data.model_dump(), params
     )
 
     assert 0 <= confidence <= 1
@@ -135,7 +135,7 @@ def test_optimization_notes_generation(sample_trade_plan, sample_market_data):
     """Test optimization notes generation"""
     agent = OptimizeAgent()
 
-    notes = agent._generate_optimization_notes(sample_trade_plan.dict(), sample_market_data.dict())
+    notes = agent._generate_optimization_notes(sample_trade_plan.model_dump(), sample_market_data.model_dump())
 
     assert isinstance(notes, str)
     assert len(notes) > 0

@@ -118,7 +118,7 @@ class OrderManager:
         return {
             "status": "success",
             "message": f"Order {order_id} cancelled",
-            "data": order.dict(),
+            "data": order.model_dump(),
         }
 
     def get_order_status(self, order_id: str) -> Dict[str, Any]:
@@ -126,12 +126,12 @@ class OrderManager:
         if order_id not in self.orders:
             return {"status": "error", "message": f"Order {order_id} not found"}
 
-        return {"status": "success", "data": self.orders[order_id].dict()}
+        return {"status": "success", "data": self.orders[order_id].model_dump()}
 
     def get_open_orders(self) -> Dict[str, Any]:
         """Get all open orders"""
         open_orders = {
-            order_id: order.dict()
+            order_id: order.model_dump()
             for order_id, order in self.orders.items()
             if order.status in ["pending", "partially_filled"]
         }
@@ -160,7 +160,7 @@ class OrderManager:
         return {
             "status": "success",
             "message": f"Market order executed at {execution_price}",
-            "data": order.dict(),
+            "data": order.model_dump(),
         }
 
     def _execute_limit_order(self, order: OrderSchema) -> Dict[str, Any]:
@@ -176,7 +176,7 @@ class OrderManager:
         return {
             "status": "success",
             "message": "Limit order placed",
-            "data": order.dict(),
+            "data": order.model_dump(),
         }
 
     def _execute_stop_order(self, order: OrderSchema) -> Dict[str, Any]:
@@ -193,7 +193,7 @@ class OrderManager:
         return {
             "status": "success",
             "message": "Stop order placed",
-            "data": order.dict(),
+            "data": order.model_dump(),
         }
 
     def _execute_stop_limit_order(self, order: OrderSchema) -> Dict[str, Any]:
@@ -210,7 +210,7 @@ class OrderManager:
         return {
             "status": "success",
             "message": "Stop-limit order placed",
-            "data": order.dict(),
+            "data": order.model_dump(),
         }
 
     def _update_position(self, order: OrderSchema, execution_price: float) -> None:

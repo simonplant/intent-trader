@@ -82,7 +82,7 @@ class OrderAgent:
         return {
             "status": "success",
             "message": "Order created",
-            "data": {"order": order.dict()},
+            "data": {"order": order.model_dump()},
         }
 
     def _cancel_order(self, **kwargs) -> Dict[str, Any]:
@@ -95,8 +95,8 @@ class OrderAgent:
             order.status = OrderStatus.CANCELLED
             return {
                 "status": "success",
-                "message": "Order cancelled",
-                "data": {"order": order.dict()},
+                "message": f"Order {order.order_id} cancelled",
+                "data": {"order": order.model_dump()},
             }
         return {"status": "error", "message": f"Order not found: {order_id}"}
 
@@ -111,7 +111,7 @@ class OrderAgent:
             return {
                 "status": "success",
                 "message": "Order modified",
-                "data": {"order": order.dict()},
+                "data": {"order": order.model_dump()},
             }
         return {"status": "error", "message": f"Order not found: {order_id}"}
 
@@ -121,7 +121,7 @@ class OrderAgent:
         """
         status = kwargs.get("status")
         orders = [
-            order.dict() for order in self.orders.values() if not status or order.status == status
+            order.model_dump() for order in self.orders.values() if not status or order.status == status
         ]
         return {
             "status": "success",

@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from data.schemas import MarketDataSchema, PositionSchema
 
@@ -18,7 +18,8 @@ class RiskParameters(BaseModel):
     max_positions: int = Field(ge=1)  # Maximum number of concurrent positions
     position_sizing_method: str = "kelly"  # kelly, fixed, or adaptive
 
-    @validator("position_sizing_method")
+    @field_validator("position_sizing_method")
+    @classmethod
     def validate_position_sizing_method(cls, v):
         if v not in ["kelly", "fixed", "adaptive"]:
             raise ValueError("Position sizing method must be one of: kelly, fixed, adaptive")
