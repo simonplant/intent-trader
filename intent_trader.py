@@ -1,5 +1,5 @@
 """
-Intent Trader v1.0.0
+Intent Trader IAA v1.0.0
 A minimalist chat-native trading assistant in ~300 lines.
 No dependencies. No bloat. Just pure trading logic.
 """
@@ -356,7 +356,7 @@ def parse_position(text: str) -> Optional[Dict]:
 # Test Function
 def test():
     """Run basic test flow"""
-    print("=== Intent Trader v1.0.0 Test ===\n")
+    print("=== Intent Trader IAA v1.0.0 Test ===\n")
     
     context = ""
     test_flow = [
@@ -380,3 +380,4 @@ def test():
 # Run test if called directly
 if __name__ == "__main__":
     test()
+    
