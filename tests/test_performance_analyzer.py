@@ -11,12 +11,15 @@ def sample_trade_plan():
     return TradePlanSchema(
         plan_id="test_plan_1",
         symbol="AAPL",
-        side="buy",
+        side="long",
         entry_price=150.0,
         stop_loss=145.0,
         take_profit=160.0,
         quantity=100,
-        strategy="momentum",
+        conviction_score=0.8,
+        risk_parameters={"strategy": "momentum"},
+        notes="Test trade plan",
+        timestamp=datetime.now(),
     )
 
 
@@ -32,6 +35,7 @@ def sample_position():
         take_profit=160.0,
         pnl=500.0,
         pnl_percent=3.33,
+        timestamp=datetime.now(),
         status="open",
     )
 
@@ -182,12 +186,15 @@ def test_multiple_trades(performance_analyzer):
         plan = TradePlanSchema(
             plan_id=f"test_plan_{i}",
             symbol="AAPL",
-            side="buy",
+            side="long",
             entry_price=150.0,
             stop_loss=145.0,
             take_profit=160.0,
             quantity=100,
-            strategy="momentum",
+            conviction_score=0.8,
+            risk_parameters={"strategy": "momentum"},
+            notes="Test trade plan",
+            timestamp=datetime.now(),
         )
 
         position = PositionSchema(
@@ -200,6 +207,7 @@ def test_multiple_trades(performance_analyzer):
             take_profit=160.0,
             pnl=500.0,
             pnl_percent=3.33,
+            timestamp=datetime.now(),
             status="open",
         )
 
@@ -250,12 +258,15 @@ def test_losing_trade(performance_analyzer):
     plan = TradePlanSchema(
         plan_id="test_plan_1",
         symbol="AAPL",
-        side="buy",
+        side="long",
         entry_price=150.0,
         stop_loss=145.0,
         take_profit=160.0,
         quantity=100,
-        strategy="momentum",
+        conviction_score=0.8,
+        risk_parameters={"strategy": "momentum"},
+        notes="Test trade plan",
+        timestamp=datetime.now(),
     )
 
     position = PositionSchema(
@@ -268,6 +279,7 @@ def test_losing_trade(performance_analyzer):
         take_profit=160.0,
         pnl=-500.0,
         pnl_percent=-3.33,
+        timestamp=datetime.now(),
         status="closed",
     )
 

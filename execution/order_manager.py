@@ -240,6 +240,8 @@ class OrderManager:
                     quantity=quantity,
                     entry_price=execution_price,
                     current_price=execution_price,
+                    stop_loss=None,
+                    take_profit=None,
                     pnl=0.0,
                     pnl_percent=0.0,
                     timestamp=datetime.now(),

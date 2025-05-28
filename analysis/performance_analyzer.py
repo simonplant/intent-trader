@@ -24,6 +24,7 @@ class TradeMetrics(BaseModel):
     max_profit: float
     execution_quality: float  # 0-1 score for execution quality
     plan_adherence: float  # 0-1 score for following the plan
+    strategy: Optional[str] = None  # Add strategy field
 
 
 class DailyMetrics(BaseModel):
@@ -106,6 +107,9 @@ class PerformanceAnalyzer:
         # Calculate plan adherence
         plan_adherence = self._calculate_plan_adherence(position, plan, entry_order, exit_order)
 
+        # Extract strategy from plan
+        strategy = plan.risk_parameters.get("strategy") if plan.risk_parameters else None
+
         # Create trade metrics
         trade = TradeMetrics(
             symbol=position.symbol,
@@ -123,6 +127,7 @@ class PerformanceAnalyzer:
             max_profit=self._calculate_max_profit(position, orders),
             execution_quality=execution_quality,
             plan_adherence=plan_adherence,
+            strategy=strategy,  # Add strategy to trade metrics
         )
 
         # Add trade to list
@@ -423,10 +428,8 @@ class PerformanceAnalyzer:
 
         # Calculate metrics by strategy
         strategy_metrics = {}
-        for strategy in set(t.plan.strategy for t in self.trades if hasattr(t, "plan")):
-            strategy_trades = [
-                t for t in self.trades if hasattr(t, "plan") and t.plan.strategy == strategy
-            ]
+        for strategy in set(t.strategy for t in self.trades if t.strategy):
+            strategy_trades = [t for t in self.trades if t.strategy == strategy]
             strategy_metrics[strategy] = {
                 "total_trades": len(strategy_trades),
                 "winning_trades": sum(1 for t in strategy_trades if t.win),
