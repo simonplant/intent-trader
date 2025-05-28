@@ -1,209 +1,311 @@
-# Intent Trader IAA
+# Intent Trader - Source-Based Trading Assistant
 
-A stateless, chat-native trading assistant implementing the PFEMRC workflow with dual-source scoring for DP/Inner Circle and Mancini Blueprint systems. Built on Intent-Aware Assistant (IAA) architecture - no dependencies, no bloat, just pure trading logic that responds in <1ms.
+A lightning-fast (<1ms) trading assistant implementing the PFEMRC workflow with strict source-based scoring for DP/Inner Circle and Mancini Blueprint systems. Built on Intent-Aware Assistant (IAA) architecture with zero dependencies.
 
-## 🎯 What It Does
+## 🎯 Overview
 
-Intent Trader is a production-ready trading assistant that:
-- **Routes trade ideas by source** - Never mixes DP conviction scoring with Mancini technical analysis
-- **Scores with system integrity** - DP ideas get 0.0-1.0 conviction scores, Mancini setups get technical pattern scores
-- **Manages the complete PFEMRC lifecycle** - PLAN → FOCUS → EXECUTE → MANAGE → REVIEW → COACH
-- **Detects behavioral patterns in real-time** - Alerts for revenge trading, overtrading, and discipline breaks
-- **Maintains stateless operation** - Context flows through as simple strings, no database needed
+Intent Trader is a production-ready trading discipline system that:
+- **Never mixes trading methodologies** - Each trade scored 100% by its source
+- **Enforces the complete PFEMRC workflow** - PLAN → FOCUS → EXECUTE → MANAGE → REVIEW → COACH
+- **Provides real-time behavioral coaching** - Detects revenge trading, overtrading, and discipline breaks
+- **Maintains complete audit trail** - Every decision logged and recoverable
 
 ## 🚀 Quick Start
 
 ```bash
-# Clone and run - that's it!
-git clone https://github.com/yourusername/intent-trader
-cd intent-trader
-python intent_trader.py
+# No installation needed - just Python 3.6+
+python intent_trader_v1.py
 ```
 
-No installation. No dependencies. Just Python 3.6+.
+### Morning Routine Example
 
-## 📊 Trading Systems Integration
+```
+[PLAN] > analyze dp
+AAPL really like this setup above 225, strong conviction
+CRM focus trade here, get aggressive on any dip
+TSLA worth watching but not excited below 180
+SPX 5800 calls if we break yesterday's high - DP calling this
 
-### DP/Inner Circle (Stocks, ETFs, SPX-when-called)
-- **Conviction Scoring**: 0.0-1.0 based on language patterns
-- **Focus Trades**: 0.90+ conviction ("get aggressive", "love this")
-- **Position Sizing**: Tied directly to conviction score
-- **Management**: Flexible, sentiment-based adjustments
+=== DP ANALYSIS ===
+📊 Bias: BULLISH
+📍 Key Levels: 225, 180, 5800
+🎯 Trade Ideas:
+  • AAPL: High (0.80)
+  • CRM: Exceptional (0.95)
+  • TSLA: Low (0.45)
+  • SPX: High (0.80)
+→ Next: Analyze Mancini for confluence
 
-### Mancini Blueprint (ES Futures, ES-derived SPX)
-- **Technical Scoring**: Failed Breakdown patterns score 0.85-0.95
-- **Acceptance Validation**: 2-30min based on volatility
-- **75% Lock Rule**: Mandatory profit taking at first target
-- **Level-to-Level**: Systematic progression tracking
+[PLAN] > analyze mancini
+ES 5750 failed breakdown setting up, watch for reclaim
+Mode 2 market - complex and choppy
+Support at 5740, resistance 5765
 
-## 💬 Natural Language Commands
+=== MANCINI ANALYSIS ===
+📊 Market Mode: Mode2
+📍 ES Levels: 5750, 5740, 5765
+📈 Setups Identified:
+  • FB @ ES 5750
+→ Next: Create unified plan
 
-The system understands natural trading language across all phases:
+[PLAN] > create plan
+
+=== DAILY TRADING PLAN ===
+📊 Phase: PLAN → FOCUS
+📈 Market Mode: Mode2
+
+🎯 DP/INNER CIRCLE FOCUS:
+Focus Trades (0.90+):
+  • CRM: Exceptional (0.95)
+High Conviction (0.70-0.89):
+  • AAPL: High (0.80)
+  • SPX: High (0.80)
+
+📈 MANCINI BLUEPRINT FOCUS:
+Failed Breakdowns (Primary Edge):
+  • ES: FB @ 5750
+    → ES 5750 = SPX 575
+
+✅ EXECUTION RULES:
+• DP trades: Size by conviction score
+• Mancini trades: Wait for acceptance confirmation
+• Never mix scoring methodologies
+• Verify source before ANY SPX trade
+
+→ Phase updated to FOCUS
+```
+
+### Trading Day Example
+
+```
+# Pre-market focus
+[FOCUS] > focus trades
+=== TODAY'S FOCUS TRADES ===
+🎯 DP FOCUS (0.90+):
+• CRM: Exceptional (0.95)
+
+📈 MANCINI FOCUS (0.85+):
+• ES: FB (0.90) @ 5750
+
+# Execute when ready
+[FOCUS] > buy 100 CRM @ 165.50
+=== EXECUTED ===
+📊 LONG 100 CRM @ 165.50
+✓ Source: DP
+✓ Phase → MANAGE
+
+🎯 DP Rules:
+• Flexible management
+• Adjust on sentiment
+
+# Quick position check
+[MANAGE] > positions
+=== OPEN POSITIONS ===
+🎯 DP POSITIONS:
+• LONG CRM 100@165.50 → $0.00 (+0.0%)
+
+💰 Unrealized: $0.00
+💵 Realized: $0.00
+📊 Total P&L: $0.00
+
+# Update prices
+[MANAGE] > update CRM 167.20
+✅ Updated: CRM → 167.2
+
+[MANAGE] > positions
+=== OPEN POSITIONS ===
+🎯 DP POSITIONS:
+• LONG CRM 100@165.50 → $170.00 (+1.0%)
+
+# Move stop to breakeven
+[MANAGE] > move stop CRM 165.50
+=== STOP MOVED ===
+📊 CRM: None → 165.5
+✅ Position now RISK FREE!
+
+# End of day
+[MANAGE] > exit CRM @ 168.00
+=== CLOSED POSITION ===
+📊 CRM: $250.00 (+1.5%)
+✓ Source: DP
+✅ Profit taken
+
+→ All flat. Phase: REVIEW
+
+[REVIEW] > review
+=== SESSION REVIEW ===
+📊 Completed Trades: 1
+💵 Realized P&L: $250.00
+❌ Stops Hit: 0
+
+🎯 DP Ideas Generated: 4
+✅ Win Rate: 100%
+✅ Positive session - good discipline
+
+→ Ready for COACH phase
+
+[COACH] > coach
+=== COACH FEEDBACK ===
+✅ Good discipline today!
+• Keep following your plan
+• Size up on focus trades
+• Trust your analysis
+
+📝 TOMORROW'S FOCUS:
+1. Wait for A+ setups only
+2. Respect source-based rules
+3. Honor stops without revenge
+4. Journal after each trade
+
+→ Ready for next session (Phase: PLAN)
+
+[PLAN] > save
+💾 Saved to trader_20240528_1545.json
+```
+
+## 📚 Command Reference
 
 ### PLAN Phase (Pre-Market)
-```
-"analyze dp morning call"
-"what's mancini saying about ES levels?"
-"create today's plan"
-"what's the market mode?"
-```
+- `analyze dp [text]` - Process DP morning call
+- `analyze mancini [text]` - Process Mancini newsletter
+- `market mode [1/2]` - Set/check market mode
+- `create plan` - Generate unified trading plan
 
 ### FOCUS Phase (9:00-9:30 AM)
-```
-"show focus trades"
-"dp focus list"
-"any failed breakdowns setting up?"
-"grade AAPL setup"
-```
+- `focus trades` - Show all high-conviction trades
+- `dp focus` - DP trades only (0.90+)
+- `mancini setups` - Mancini setups only
+- `check source TICKER` - Verify ticker source
 
 ### EXECUTE Phase (Market Hours)
-```
-"buy 100 AAPL at 225.50"
-"add SPX 5800c" (system asks for source verification)
-"size position for CRM risk 500"
-"confirm FB acceptance on ES"
-```
+- `buy/sell QTY TICKER @ PRICE` - Full entry
+- `buy/sell TICKER` - Quick entry (100 shares)
+- `add TICKER` - Add from analyzed ideas
+- `quick TICKER` - Instant position add
+- `size TICKER` - Position sizing guidance
 
 ### MANAGE Phase (Intraday)
-```
-"positions"
-"lock 75% on ES"
-"move stop AAPL 223"
-"trail the runner"
-```
+- `positions` - View all open positions
+- `update AAPL 227.50 TSLA 185.20` - Update prices
+- `lock 75 [TICKER]` - Take 75% profits (Mancini)
+- `move stop TICKER PRICE` - Adjust stop loss
+- `exit TICKER` or `exit all` - Close positions
+- `note TICKER message` - Quick position notes
 
-### REVIEW & COACH Phases
-```
-"review session"
-"show performance by source"
-"behavioral check"
-"coach me"
-```
+### REVIEW Phase (Post-Market)
+- `review` - Session summary
+- `performance` - Detailed performance analysis
+
+### COACH Phase (Anytime)
+- `coach` - Get behavioral feedback
+- `behavioral check` - Real-time pattern check
+
+### Utilities (Always Available)
+- `save` - Save session to JSON
+- `load [filename]` - Restore previous session
+- `journal [note]` - Add timestamped note
+- `context` - Show current state
+- `reset` - Start fresh
+- `help` - Show all commands
+
+## 🎯 Key Features
+
+### Source-Based Scoring System
+Every trade is scored 100% by its source system:
+- **Stocks/ETFs**: Always use DP conviction scoring
+- **ES Futures**: Always use Mancini technical scoring
+- **SPX Options**: Must verify source (asks user)
+
+### DP Conviction Scale
+| Score | Phrases | Label | Size |
+|-------|---------|-------|------|
+| 0.95+ | "focus trade", "get aggressive", "love this" | Exceptional | Full+ |
+| 0.80+ | "definitely want", "really like" | High | Full |
+| 0.60+ | "I'm a buyer", "decent setup" | Medium | Half |
+| 0.40+ | "worth watching", "might work" | Low | Quarter |
+
+### Mancini Technical Scoring
+| Score | Pattern | Label | Size |
+|-------|---------|-------|------|
+| 0.90 | Failed Breakdown | FB | Full |
+| 0.75 | Level Reclaim | Reclaim | Full |
+| 0.65 | Support Test | Support | Half |
+
+### Behavioral Coaching
+Real-time alerts for:
+- Revenge trading (3+ stops hit)
+- Overtrading (10+ trades)
+- Low quality trades (taking <0.50 scores)
+- Breaking source discipline
 
 ## 🏗️ Architecture
 
 Built on IAA (Intent-Aware Assistant) principles:
+- **Zero dependencies** - Pure Python stdlib only
+- **<1ms response** - No external calls, pure in-memory
+- **Single file** - Complete system in ~1000 lines
+- **Stateless** - Context flows through, no hidden state
+- **Chat-native** - Natural language, no commands to memorize
+
+## 📊 Data Models
 
 ```python
-# Every user message follows this flow:
-message → detect_intent() → route_to_handler() → return_response
-
-# Context is a simple string:
-"phase:PLAN|positions:AAPL:L100@225.50|pnl:450.00|dp:bias:BULLISH"
-
-# One file, pure Python, no magic:
-- intent_trader.py     # <1ms response time, zero dependencies
+@dataclass
+class TradeIdea:
+    ticker: str
+    source: str  # "dp" or "mancini" - NEVER mixed
+    score: ConvictionScore
+    
+@dataclass
+class Position:
+    ticker: str
+    source: str
+    side: str
+    qty: int
+    entry: float
+    current: float
+    stop: Optional[float]
+    
+@dataclass
+class TradingContext:
+    phase: str  # PLAN/FOCUS/EXECUTE/MANAGE/REVIEW/COACH
+    ideas: List[TradeIdea]
+    positions: List[Position]
+    realized_pnl: float
+    journal: List[str]
 ```
 
-### Key Design Principles
-1. **Single Responsibility**: Each handler does ONE thing perfectly
-2. **Source Integrity**: Never mix DP and Mancini scoring
-3. **Stateless Operation**: Context passed as flat strings
-4. **Chat-Native**: All responses read like natural conversation
-5. **<1ms Latency**: Everything in-memory, no external calls
+## 🧪 Testing the System
 
-## 📈 Source-Based Scoring System
+### Day 1: Paper Testing
+1. Run through complete PFEMRC cycle
+2. Verify source separation works
+3. Test behavioral alerts
+4. Practice save/load workflow
 
-### DP/Inner Circle Conviction Scale
-| Score | Language Patterns | Position Size |
-|-------|------------------|---------------|
-| 0.90-1.00 | "focus trade", "get aggressive", "love this" | Full size + |
-| 0.70-0.89 | "definitely want", "really like", "strong conviction" | Full size |
-| 0.50-0.69 | "I'm a buyer", "decent setup", "worth owning" | Half size |
-| 0.30-0.49 | "if viable", "worth watching", "might work" | Quarter size |
-| 0.00-0.29 | "not excited", "avoid", "stay away" | No trade |
+### Week 1: Small Live Testing
+1. Use 1/10th normal position sizes
+2. Focus on process, not profits
+3. Journal every trade decision
+4. Review behavioral patterns
 
-### Mancini Technical Scoring
-| Score | Setup Type | Quality Indicators | Position Size |
-|-------|------------|-------------------|---------------|
-| 0.85-0.95 | Failed Breakdown | Clean flush + rapid reclaim | Full size |
-| 0.70-0.84 | Level Reclaim | Multiple tests + acceptance | Full size |
-| 0.60-0.69 | Support Test | First approach to major level | Half size |
-| 0.40-0.59 | Mode 2 Range | Choppy action, trap potential | Quarter size |
+### Success Metrics
+- Zero source mixing errors ✓
+- All trades properly logged ✓
+- Behavioral alerts helpful ✓
+- Workflow feels natural ✓
 
-## 🧠 Behavioral Coaching
+## 🚀 Performance
 
-Real-time pattern detection and intervention:
-
-```
-🚨 COACH ALERT: 3 stops hit - Maximum risk reached
-🚨 COACH ALERT: Revenge trading detected - Step away
-🚨 COACH ALERT: Overtrading after losses - Reduce size
-```
-
-The system tracks:
-- Stops hit count
-- Revenge trading patterns
-- Position sizing discipline
-- Time-of-day performance
-- System adherence (DP vs Mancini rules)
-
-## 🔧 Customization & Extension
-
-### Adding New Intents
-```python
-# 1. Add to intent_patterns
-"NEW_INTENT": ["keyword1", "keyword2", "trigger phrase"]
-
-# 2. Create handler method
-def handle_new_intent(self, msg, ctx):
-    # Parse message, update context, return response
-    return "Response text", updated_ctx
-
-# 3. Map in handlers dict
-self.handlers["NEW_INTENT"] = self.handle_new_intent
-```
-
-### Adding Broker Integration
-```python
-# Future API integration point in handle_execute:
-if self.broker_api:
-    order_id = self.broker_api.place_order(symbol, side, qty, price)
-    response += f"\n🔗 Broker Order ID: {order_id}"
-```
-
-## 📁 Repository Structure
-
-```
-intent-trader/
-├── intent_trader.py           # Main implementation (production-ready)
-├── iaa_template.py           # Generic IAA framework template
-├── requirements-and-language.md  # Full system requirements & vocabulary
-├── IAA-architecture-best-practices.md  # Architecture principles
-├── docs/
-│   └── how-to-design-iaa-requirements.md
-└── README.md                 # This file
-```
-
-## 🎓 Philosophy
-
-This isn't just another trading bot. It's a discipline enforcement system that:
-- Respects the source of each trading idea
-- Prevents methodology mixing that destroys edge
-- Tracks behavioral patterns that kill profits
-- Maintains institutional-grade audit trails
-- Responds faster than you can blink (<1ms)
-
-Built for solo traders who want the discipline of a prop firm in a single Python file.
+- Response time: <1ms for all operations
+- Memory usage: ~10MB baseline
+- File size: Single 50KB Python file
+- Dependencies: Zero (Python 3.6+ only)
 
 ## 📜 License
 
-MIT License - Use it, modify it, make money with it.
-
-## 🤝 Contributing
-
-The codebase is intentionally kept in a single file for easy ownership and modification. Fork it, customize it for your strategy, and keep it simple.
-
-## ⚡ Performance
-
-- **Response Time**: <1ms for all operations
-- **Memory Usage**: ~10MB baseline
-- **Code Size**: ~400 lines of pure Python
-- **Dependencies**: Zero (Python stdlib only)
-- **Startup Time**: Instant
+MIT License - Use it, modify it, profit from it.
 
 ---
 
-*"Stateless, bloatless, chat-first, human-native."*
-
-Built with the IAA philosophy: No latency, no magic, all business logic exposed.
+Built with the IAA philosophy: *"Stateless, bloatless, chat-first, human-native."*
