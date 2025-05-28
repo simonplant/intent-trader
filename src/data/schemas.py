@@ -32,8 +32,8 @@ class TradePlanSchema(BaseModel):
     symbol: str
     side: str
     entry_price: float
-    stop_loss: float
-    take_profit: float
+    stop_loss: Optional[float] = None
+    take_profit: Optional[float] = None
     quantity: float
     strategy: str
     conviction_score: float = Field(default=0.0)

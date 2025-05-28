@@ -82,11 +82,14 @@ def test_market_order_execution(order_manager, sample_market_data):
     order_manager.update_market_data({"ES": sample_market_data})
 
     # Place market order
-    params = OrderParameters(symbol="ES", side="buy", quantity=1.0, order_type="market")
-
-    # Add missing fields for PositionSchema
-    params.stop_loss = 4400.0
-    params.take_profit = 4600.0
+    params = OrderParameters(
+        symbol="ES",
+        side="buy",
+        quantity=1.0,
+        order_type="market",
+        stop_loss=4400.0,
+        take_profit=4600.0
+    )
 
     result = order_manager.place_order(params)
     assert result["status"] == "success"

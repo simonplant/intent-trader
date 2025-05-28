@@ -32,9 +32,9 @@ def market_data_feed(tmp_path):
     cache_dir.mkdir(parents=True)
 
     config = get_config_manager(str(config_path))
-    logger = LogManager().get_logger("market_data")
+    logger = LogManager(config).get_logger("market_data")
 
-    return MarketDataFeed(config, logger, cache_dir=str(cache_dir))
+    return MarketDataFeed(config)
 
 
 @pytest.mark.integration

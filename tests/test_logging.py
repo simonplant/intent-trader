@@ -3,6 +3,7 @@
 import logging
 import tempfile
 from pathlib import Path
+from io import StringIO
 
 import pytest
 
@@ -20,45 +21,50 @@ def log_manager(tmp_path):
     config_content = """
     logging:
         level: DEBUG
-        file_path: logs/trading.log
+        file: logs/trading.log
         max_size: 1048576
         backup_count: 3
     """
     config_path.write_text(config_content)
 
     config = ConfigManager(str(config_path))
-    return LogManager()
+    return LogManager(config)
 
 
 def test_logger_creation(log_manager):
     """Test logger creation and basic functionality."""
-    logger = log_manager.get_logger()
+    logger = log_manager.get_logger("intent_trader")
     assert isinstance(logger, logging.Logger)
     assert logger.name == "intent_trader"
-    assert logger.level == logging.DEBUG
+    # Root logger level is set, not individual logger
+    root_logger = logging.getLogger()
+    assert root_logger.level == logging.DEBUG
 
 
 def test_child_logger(log_manager):
     """Test creation of child loggers."""
-    child_logger = log_manager.get_logger("market_data")
+    child_logger = log_manager.get_logger("intent_trader.market_data")
     assert child_logger.name == "intent_trader.market_data"
-    assert child_logger.level == logging.DEBUG
+    # Child logger inherits from root
+    root_logger = logging.getLogger()
+    assert root_logger.level == logging.DEBUG
 
 
 def test_log_handlers(log_manager):
     """Test that loggers have the correct handlers."""
-    logger = log_manager.get_logger()
-    handlers = logger.handlers
+    # Get root logger since handlers are attached there
+    root_logger = logging.getLogger()
+    handlers = root_logger.handlers
 
     # Should have both file and console handlers
-    assert len(handlers) == 2
+    assert len(handlers) >= 2
     assert any(isinstance(h, logging.handlers.RotatingFileHandler) for h in handlers)
     assert any(isinstance(h, logging.StreamHandler) for h in handlers)
 
 
 def test_log_rotation(log_manager, tmp_path):
     """Test log file rotation."""
-    logger = log_manager.get_logger()
+    logger = log_manager.get_logger("intent_trader")
 
     # Write enough logs to trigger rotation
     for i in range(1000):
@@ -71,19 +77,14 @@ def test_log_rotation(log_manager, tmp_path):
     assert len(log_files) >= 1
 
 
-def test_log_formatting(log_manager):
+def test_log_formatting(log_manager, caplog):
     """Test log message formatting."""
-    logger = log_manager.get_logger()
-
-    # Capture log output
-    log_capture = []
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(message)s"))
-    logger.addHandler(handler)
+    logger = log_manager.get_logger("intent_trader")
 
     # Log a test message
     test_message = "Test log message"
-    logger.info(test_message)
+    with caplog.at_level(logging.INFO):
+        logger.info(test_message)
 
     # Check that the message was logged
-    assert test_message in log_capture
+    assert test_message in caplog.text

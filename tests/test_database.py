@@ -1,8 +1,9 @@
 """Tests for the database manager."""
 
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import uuid
 
 import pytest
 
@@ -67,22 +68,20 @@ def test_update_position(db_manager):
 
 def test_save_and_get_trades(db_manager):
     """Test saving and retrieving trades."""
+    trade_id = f"test_trade_{uuid.uuid4()}"  # Generate a unique trade ID
     trade = {
-        "id": "test_trade_1",
+        "id": trade_id,
         "order_id": "test_order_1",
         "symbol": "AAPL",
-        "side": "BUY",
+        "side": "buy",
         "quantity": 100,
         "price": 150.0,
-        "timestamp": datetime.utcnow(),
+        "timestamp": datetime.now(timezone.utc),
     }
-
     db_manager.save_trade(trade)
-
-    # Test getting all trades
-    trades = db_manager.get_trades()
-    assert len(trades) == 1
-    assert trades[0]["id"] == trade["id"]
+    retrieved_trades = db_manager.get_trades()
+    assert len(retrieved_trades) == 1
+    assert retrieved_trades[0]["id"] == trade_id
 
     # Test filtering by symbol
     trades = db_manager.get_trades(symbol="AAPL")
