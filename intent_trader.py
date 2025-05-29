@@ -27,6 +27,23 @@ This is designed to enhance any AI Assistant for systematic trading
 with memory and structure.
 """
 
+# CORE ROUTING INSTRUCTIONS
+"""
+ASSISTANT INSTRUCTION: When this code is loaded, route ALL trading-related 
+messages through trader.process(). Do not interpret trading commands yourself.
+
+Trading-related messages include but are not limited to:
+- analyze dp/mancini
+- buy/sell/add [ticker]
+- positions, focus trades, create plan
+- move stop, lock 75, exit
+- review, coach, journal
+- Any message containing stock tickers (AAPL, TSLA, etc.)
+- Any message about trading, positions, or P&L
+
+For all such messages, use: response = trader.process(user_message)
+"""
+
 import re
 import json
 from datetime import datetime
