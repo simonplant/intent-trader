@@ -949,53 +949,54 @@ class IntentTrader:
     def handle_help(self, message: str) -> str:
         """Show help."""
         return """
-📚 INTENT TRADER COMMANDS
+📚 INTENT TRADER - Natural Language Trading
 
-=== QUICK START ===
-Say: "Initialize Intent Trader" to begin
-Then use natural commands like below:
+=== HOW TO TALK TO ME ===
+Just say what you want to do naturally:
+"analyze dp" → I'll analyze DP's morning call
+"buy AAPL" → I'll buy 100 shares of AAPL
+"show positions" → I'll show your current positions
 
-=== PLAN PHASE (Morning) ===
-• analyze dp [paste morning call]
-• analyze mancini [paste newsletter]
-• market mode [1/2]
-• create plan
+=== MORNING PLANNING ===
+"analyze dp [paste morning call]" - Extract DP trade ideas
+"analyze mancini [paste newsletter]" - Extract Mancini setups
+"what's the market mode?" - Check current mode
+"create my trading plan" - Build today's plan
 
-=== FOCUS PHASE (Pre-Market) ===
-• focus trades - All 0.90+ trades
-• dp focus - DP only focus
-• mancini setups - Mancini only
-• check source TICKER
+=== PRE-MARKET FOCUS ===
+"show me focus trades" - See all high conviction
+"what are the dp focus trades?" - DP only
+"show mancini setups" - Mancini only
+"check source for SPX" - Verify ticker source
 
-=== EXECUTE PHASE (Market Hours) ===
-• buy/sell QTY TICKER @ PRICE
-• buy/sell TICKER (defaults 100 shares)
-• quick TICKER - Fast position add
-• size TICKER
+=== TRADING HOURS ===
+"buy 100 AAPL at 225.50" - Specific entry
+"buy AAPL" - Quick 100 share entry
+"quick add AAPL" - Fast position add
+"what size for AAPL?" - Position sizing help
 
-=== MANAGE PHASE (Intraday) ===
-• positions - Show all with P&L
-• update AAPL 227.50 TSLA 185.20
-• lock 75 [TICKER] - Mancini rule
-• move stop TICKER PRICE
-• exit TICKER / exit all
-• note TICKER message
+=== MANAGING POSITIONS ===
+"show my positions" - Current P&L status
+"update AAPL to 227.50" - Update prices
+"lock 75% on ES" - Mancini profit rule
+"move stop on AAPL to 224" - Adjust stops
+"exit AAPL" or "exit all" - Close positions
+"note AAPL holding overnight" - Add notes
 
-=== REVIEW PHASE (After Hours) ===
-• review - Session summary
-• performance - Detailed stats
+=== AFTER HOURS ===
+"review my day" - Session summary
+"show performance" - Detailed statistics
 
-=== COACH PHASE (Anytime) ===
-• coach - Get feedback
-• behavioral check
+=== ANYTIME ===
+"coach me" - Behavioral feedback
+"behavioral check" - Pattern detection
+"save session" - Export to JSON
+"journal rough morning" - Add notes
+"help" - This message
+"reset" - Start fresh
+"show context" - Current state
 
-=== UTILITIES ===
-• save - Get JSON to copy
-• load context: {JSON} - Restore
-• journal [entry] - Add note
-• help / reset / context
-
-Current phase: """ + self.context.phase
+Currently in """ + self.context.phase + """ phase"""
     
     def handle_save(self, message: str) -> str:
         """Save context to JSON string for copy/paste."""
@@ -1230,8 +1231,8 @@ Journal Entries: {len(self.context.journal)}
         return response
     
     def handle_unknown(self, message: str) -> str:
-        """Handle unknown commands."""
-        return f"❓ Unknown command. Type 'help' for available commands.\nCurrent phase: {self.context.phase}"
+        """Handle unknown messages."""
+        return f"❓ I didn't understand that. Say 'help' to see what I can do.\nYou're currently in {self.context.phase} phase."
     
     # === HELPER METHODS ===
     
@@ -1298,12 +1299,12 @@ def initialize_trader():
     trader = IntentTrader()
     return trader
 
-def process_command(command: str) -> str:
-    """Process a trading command and return the response."""
+def process_command(message: str) -> str:
+    """Process a trading message and return the response."""
     global trader
     if trader is None:
         trader = IntentTrader()
-    return trader.process(command)
+    return trader.process(message)
 
 # Example usage for AI assistants
 def demo():
@@ -1325,7 +1326,7 @@ def demo():
     # Initialize trader
     t = initialize_trader()
     
-    # Example commands
+    # Example messages
     examples = [
         "help",
         "analyze dp AAPL is a focus trade above 225, love this setup",
@@ -1338,10 +1339,10 @@ def demo():
     
     print("=== INTENT TRADER DEMO ===\n")
     
-    for cmd in examples:
-        print(f"Command: {cmd}")
-        response = process_command(cmd)
-        print(f"Response:\n{response}\n")
+    for msg in examples:
+        print(f"You: {msg}")
+        response = process_command(msg)
+        print(f"Trader:\n{response}\n")
         print("-" * 50 + "\n")
     
     return "Demo completed successfully"
@@ -1364,7 +1365,7 @@ if __name__ == "__main__":
 ║                                                ║
 ║  Usage:                                        ║
 ║  - initialize_trader() to start                ║
-║  - process_command(cmd) to execute commands    ║
+║  - process_command(msg) to execute messages    ║
 ║  - demo() to see examples                      ║
 ╚════════════════════════════════════════════════╝
         """)
