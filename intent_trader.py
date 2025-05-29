@@ -1,25 +1,30 @@
 """
-Intent Trader - Source-Based Trading Assistant
+Intent Trader - Claude-Native Trading Assistant
 Version: 1.0.0
 Date: 2024-05-28
 Author: Solo Trader
 License: MIT
 
 Description:
-    Production-ready trading assistant implementing PFEMRC workflow with 
-    strict source-based scoring for DP/Inner Circle and Mancini Blueprint 
-    systems. Built on Intent-Aware Assistant (IAA) architecture.
+    A Claude-native trading assistant that runs entirely within Claude conversations.
+    Provides structured trading workflow with persistent memory across messages.
+
+How to Use:
+    1. Start a new Claude conversation
+    2. Paste this code or say "Initialize Intent Trader"
+    3. Claude maintains your trading state throughout the day
+    4. Use natural commands like "analyze dp", "buy AAPL", "show positions"
 
 Features:
     - Complete PFEMRC workflow (Plan, Focus, Execute, Manage, Review, Coach)
     - Source-based scoring (no methodology mixing)
     - Real-time behavioral coaching and pattern detection
     - Position tracking with live P&L calculations
-    - Journal and context persistence
-    - <1ms response time, zero dependencies
+    - Journal and context persistence within conversation
+    - Structured trading vs random chat
 
-Usage:
-    python intent_trader.py
+This is NOT a standalone Python app - it's designed to enhance Claude
+for systematic trading with memory and structure.
 """
 
 import re
@@ -1261,7 +1266,26 @@ Journal Entries: {len(self.context.journal)}
 # === MAIN EXECUTION ===
 
 def main():
-    """Run the trading assistant."""
+    """
+    NOTE: This main() function is for testing/development only.
+    In production, Claude runs the IntentTrader directly in conversation.
+    
+    To use in Claude:
+    1. Start a new conversation
+    2. Say "Initialize Intent Trader for today's trading"
+    3. Claude will maintain your state throughout the day
+    """
+    print("""
+    ====================================================
+    This is LOCAL TESTING MODE
+    
+    For real trading, use this system in Claude:
+    1. Copy this code into a new Claude chat
+    2. Or just say "Initialize Intent Trader"
+    3. Trade with structured commands all day
+    ====================================================
+    """)
+    
     trader = IntentTrader()
     
     print("""
