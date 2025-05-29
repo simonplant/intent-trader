@@ -280,27 +280,31 @@ class IntentTrader:
             
             if exceptional:
                 response += "\n💎 EXCEPTIONAL (0.90+) - Focus Trades:\n"
-                for ticker, score, entry in exceptional:
-                    entry_str = f" @ {entry}" if entry else ""
-                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
+                for i in self.context.ideas:
+                    if i.source == "dp" and i.score.score >= 0.90:
+                        entry_str = f" @ {i.entry}" if i.entry else ""
+                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                     
             if high:
                 response += "\n✅ HIGH (0.70-0.89) - Full Size:\n"
-                for ticker, score, entry in high:
-                    entry_str = f" @ {entry}" if entry else ""
-                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
+                for i in self.context.ideas:
+                    if i.source == "dp" and 0.70 <= i.score.score < 0.90:
+                        entry_str = f" @ {i.entry}" if i.entry else ""
+                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                     
             if medium:
                 response += "\n📊 MEDIUM (0.50-0.69) - Half Size:\n"
-                for ticker, score, entry in medium:
-                    entry_str = f" @ {entry}" if entry else ""
-                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
+                for i in self.context.ideas:
+                    if i.source == "dp" and 0.50 <= i.score.score < 0.70:
+                        entry_str = f" @ {i.entry}" if i.entry else ""
+                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                     
             if low:
                 response += "\n⚠️ LOW (<0.50) - Avoid/Quarter:\n"
-                for ticker, score, entry in low:
-                    entry_str = f" @ {entry}" if entry else ""
-                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
+                for i in self.context.ideas:
+                    if i.source == "dp" and i.score.score < 0.50:
+                        entry_str = f" @ {i.entry}" if i.entry else ""
+                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                 
         if analysis["conviction_phrases"]:
             response += "\n💪 Key Phrases Detected:\n"
@@ -385,7 +389,7 @@ class IntentTrader:
                 response += "\n🎯 PRIMARY EDGE (0.85+) - Full Size:\n"
                 for label, score, level in primary:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    response += f"  • {label}: {score:.2f} = \"Primary Edge\"{level_str}\n"
                     if level:
                         response += f"    → SPX equivalent: {level/10:.0f}\n"
                         
@@ -393,19 +397,19 @@ class IntentTrader:
                 response += "\n✅ STRONG (0.70-0.84) - Full Size:\n"
                 for label, score, level in strong:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    response += f"  • {label}: {score:.2f} = \"Strong Setup\"{level_str}\n"
                     
             if moderate:
                 response += "\n📊 MODERATE (0.50-0.69) - Half Size:\n"
                 for label, score, level in moderate:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    response += f"  • {label}: {score:.2f} = \"Moderate Setup\"{level_str}\n"
                     
             if weak:
                 response += "\n⚠️ WEAK (<0.50) - Avoid/Quarter:\n"
                 for label, score, level in weak:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    response += f"  • {label}: {score:.2f} = \"Weak Setup\"{level_str}\n"
                     
         # Mode-specific guidance
         if self.context.mode == "Mode2":
