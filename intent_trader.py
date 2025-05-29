@@ -221,6 +221,14 @@ class IntentTrader:
         levels = self._extract_levels(message)
         symbols = self._extract_symbols(message)
         
+        # Deduplicate symbols
+        seen_symbols = set()
+        unique_symbols = []
+        for symbol in symbols:
+            if symbol not in seen_symbols:
+                seen_symbols.add(symbol)
+                unique_symbols.append(symbol)
+        
         # Determine bias
         if "bullish" in all_text and any(w in all_text for w in ["above", "over", "break"]):
             analysis["bias"] = "BULLISH"
@@ -228,7 +236,8 @@ class IntentTrader:
             analysis["bias"] = "BEARISH"
             
         # Score each symbol mentioned
-        for symbol in symbols:
+        found_count = 0
+        for symbol in unique_symbols:
             # Find context around symbol
             for line in lines:
                 if symbol in line.upper():
@@ -250,6 +259,7 @@ class IntentTrader:
                                 
                             self.context.ideas.append(idea)
                             analysis["ideas"].append(f"{symbol}: {label} ({score})")
+                            found_count += 1
                             
                             if score >= 0.90:
                                 analysis["conviction_phrases"].append(line.strip())
@@ -262,57 +272,69 @@ class IntentTrader:
         
         # Format response with conviction scores
         response = "=== DP ANALYSIS ===\n"
-        response += f"📊 Bias: {analysis['bias']}\n"
-        response += f"📍 Key Levels: {', '.join(map(str, levels[:5]))}\n"
+        response += f"Bias: {analysis['bias']}\n"
+        response += f"Key Levels: {', '.join(map(str, levels[:5]))}\n"
+        
+        # Add discovery summary
+        response += f"\nWHAT I FOUND:\n"
+        response += f"* Analyzed {len(unique_symbols)} unique tickers\n"
+        response += f"* Scored {found_count} trade ideas\n"
+        response += f"* Detected {len(analysis['conviction_phrases'])} high conviction phrases\n"
         
         if self.context.ideas:
-            response += "\n🎯 CONVICTION SCORING:\n"
+            response += "\nCONVICTION SCORING:\n"
             
             # Group by conviction level
-            exceptional = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+            exceptional = [i for i in self.context.ideas 
                           if i.source == "dp" and i.score.score >= 0.90]
-            high = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+            high = [i for i in self.context.ideas 
                    if i.source == "dp" and 0.70 <= i.score.score < 0.90]
-            medium = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+            medium = [i for i in self.context.ideas 
                      if i.source == "dp" and 0.50 <= i.score.score < 0.70]
-            low = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+            low = [i for i in self.context.ideas 
                   if i.source == "dp" and i.score.score < 0.50]
             
             if exceptional:
-                response += "\n💎 EXCEPTIONAL (0.90+) - Focus Trades:\n"
-                for i in self.context.ideas:
-                    if i.source == "dp" and i.score.score >= 0.90:
-                        entry_str = f" @ {i.entry}" if i.entry else ""
-                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
+                response += "\nEXCEPTIONAL (0.90+) - Focus Trades:\n"
+                for i in exceptional:
+                    entry_str = f" @ {i.entry}" if i.entry else ""
+                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                     
             if high:
-                response += "\n✅ HIGH (0.70-0.89) - Full Size:\n"
-                for i in self.context.ideas:
-                    if i.source == "dp" and 0.70 <= i.score.score < 0.90:
-                        entry_str = f" @ {i.entry}" if i.entry else ""
-                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
+                response += "\nHIGH (0.70-0.89) - Full Size:\n"
+                for i in high:
+                    entry_str = f" @ {i.entry}" if i.entry else ""
+                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                     
             if medium:
-                response += "\n📊 MEDIUM (0.50-0.69) - Half Size:\n"
-                for i in self.context.ideas:
-                    if i.source == "dp" and 0.50 <= i.score.score < 0.70:
-                        entry_str = f" @ {i.entry}" if i.entry else ""
-                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
+                response += "\nMEDIUM (0.50-0.69) - Half Size:\n"
+                for i in medium:
+                    entry_str = f" @ {i.entry}" if i.entry else ""
+                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                     
             if low:
-                response += "\n⚠️ LOW (<0.50) - Avoid/Quarter:\n"
-                for i in self.context.ideas:
-                    if i.source == "dp" and i.score.score < 0.50:
-                        entry_str = f" @ {i.entry}" if i.entry else ""
-                        response += f"  • {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
+                response += "\nLOW (<0.50) - Avoid/Quarter:\n"
+                for i in low:
+                    entry_str = f" @ {i.entry}" if i.entry else ""
+                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
                 
         if analysis["conviction_phrases"]:
-            response += "\n💪 Key Phrases Detected:\n"
+            response += "\nKey Phrases Detected:\n"
             for phrase in analysis["conviction_phrases"][:3]:
-                response += f"  • \"{phrase}\"\n"
-                
-        response += "\n→ Next: Analyze Mancini for confluence"
+                response += f"  * \"{phrase}\"\n"
         
+        # Help with discovery
+        response += "\nWHAT TO SAY NEXT:\n"
+        response += "* \"analyze mancini [newsletter]\" - Add Mancini setups\n"
+        response += "* \"show me focus trades\" - See your 0.90+ trades\n"
+        response += "* \"create my plan\" - Build unified trading plan\n"
+        
+        # Handle ambiguity naturally
+        unrecognized = [s for s in unique_symbols if s not in [i.ticker for i in self.context.ideas]]
+        if unrecognized:
+            response += f"\nCouldn't score: {', '.join(unrecognized)}\n"
+            response += "-> These tickers had no conviction language nearby"
+                
         return response
     
     def handle_analyze_mancini(self, message: str) -> str:
@@ -373,11 +395,11 @@ class IntentTrader:
         
         # Format response with scoring
         response = "=== MANCINI ANALYSIS ===\n"
-        response += f"📊 Market Mode: {analysis['mode']}\n"
-        response += f"📍 ES Levels: {', '.join(map(str, levels[:4]))}\n"
+        response += f"Market Mode: {analysis['mode']}\n"
+        response += f"ES Levels: {', '.join(map(str, levels[:4]))}\n"
         
         if found_setups:
-            response += "\n📈 TECHNICAL SCORING:\n"
+            response += "\nTECHNICAL SCORING:\n"
             
             # Group by score ranges
             primary = [(label, score, level) for label, score, level in found_setups if score >= 0.85]
@@ -386,38 +408,38 @@ class IntentTrader:
             weak = [(label, score, level) for label, score, level in found_setups if score < 0.50]
             
             if primary:
-                response += "\n🎯 PRIMARY EDGE (0.85+) - Full Size:\n"
+                response += "\nPRIMARY EDGE (0.85+) - Full Size:\n"
                 for label, score, level in primary:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f} = \"Primary Edge\"{level_str}\n"
+                    response += f"  * {label}: {score:.2f} = \"Primary Edge\"{level_str}\n"
                     if level:
-                        response += f"    → SPX equivalent: {level/10:.0f}\n"
+                        response += f"    -> SPX equivalent: {level/10:.0f}\n"
                         
             if strong:
-                response += "\n✅ STRONG (0.70-0.84) - Full Size:\n"
+                response += "\nSTRONG (0.70-0.84) - Full Size:\n"
                 for label, score, level in strong:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f} = \"Strong Setup\"{level_str}\n"
+                    response += f"  * {label}: {score:.2f} = \"Strong Setup\"{level_str}\n"
                     
             if moderate:
-                response += "\n📊 MODERATE (0.50-0.69) - Half Size:\n"
+                response += "\nMODERATE (0.50-0.69) - Half Size:\n"
                 for label, score, level in moderate:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f} = \"Moderate Setup\"{level_str}\n"
+                    response += f"  * {label}: {score:.2f} = \"Moderate Setup\"{level_str}\n"
                     
             if weak:
-                response += "\n⚠️ WEAK (<0.50) - Avoid/Quarter:\n"
+                response += "\nWEAK (<0.50) - Avoid/Quarter:\n"
                 for label, score, level in weak:
                     level_str = f" @ ES {level}" if level else ""
-                    response += f"  • {label}: {score:.2f} = \"Weak Setup\"{level_str}\n"
+                    response += f"  * {label}: {score:.2f} = \"Weak Setup\"{level_str}\n"
                     
         # Mode-specific guidance
         if self.context.mode == "Mode2":
-            response += "\n⚠️ Mode 2 Market: Expect chop, reduce size, tighter stops"
+            response += "\nMode 2 Market: Expect chop, reduce size, tighter stops"
         else:
-            response += "\n📈 Mode 1 Market: Trend day potential, can hold runners"
+            response += "\nMode 1 Market: Trend day potential, can hold runners"
                 
-        response += "\n→ Next: Create unified plan"
+        response += "\n-> Next: Create unified plan"
         
         return response
     
@@ -427,28 +449,28 @@ class IntentTrader:
         mancini_ideas = [i for i in self.context.ideas if i.source == "mancini"]
         
         response = "=== DAILY TRADING PLAN ===\n"
-        response += f"📊 Phase: {self.context.phase} → FOCUS\n"
-        response += f"📈 Market Mode: {self.context.mode}\n\n"
+        response += f"Phase: {self.context.phase} -> FOCUS\n"
+        response += f"Market Mode: {self.context.mode}\n\n"
         
         # DP Section
         if dp_ideas:
-            response += "🎯 DP/INNER CIRCLE FOCUS:\n"
+            response += "DP/INNER CIRCLE FOCUS:\n"
             focus_trades = [i for i in dp_ideas if i.score.score >= 0.90]
             high_conviction = [i for i in dp_ideas if 0.70 <= i.score.score < 0.90]
             
             if focus_trades:
                 response += "Focus Trades (0.90+):\n"
                 for idea in focus_trades[:3]:
-                    response += f"  • {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
+                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
                     
             if high_conviction:
                 response += "High Conviction (0.70-0.89):\n"
                 for idea in high_conviction[:3]:
-                    response += f"  • {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
+                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
         
         # Mancini Section
         if mancini_ideas:
-            response += "\n📈 MANCINI BLUEPRINT FOCUS:\n"
+            response += "\nMANCINI BLUEPRINT FOCUS:\n"
             fb_setups = [i for i in mancini_ideas if i.score.label == "FB"]
             other_setups = [i for i in mancini_ideas if i.score.label != "FB"]
             
@@ -456,24 +478,24 @@ class IntentTrader:
                 response += "Failed Breakdowns (Primary Edge):\n"
                 for idea in fb_setups:
                     entry_str = f" @ {idea.entry}" if idea.entry else ""
-                    response += f"  • {idea.ticker}: {idea.score.label}{entry_str}\n"
+                    response += f"  * {idea.ticker}: {idea.score.label}{entry_str}\n"
                     if idea.notes:
-                        response += f"    → {idea.notes}\n"
+                        response += f"    -> {idea.notes}\n"
                         
             if other_setups:
                 response += "Other Setups:\n"
                 for idea in other_setups[:2]:
-                    response += f"  • {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
+                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
         
         # Rules reminder
-        response += "\n✅ EXECUTION RULES:\n"
-        response += "• DP trades: Size by conviction score\n"
-        response += "• Mancini trades: Wait for acceptance confirmation\n"
-        response += "• Never mix scoring methodologies\n"
-        response += "• Verify source before ANY SPX trade\n"
+        response += "\nEXECUTION RULES:\n"
+        response += "* DP trades: Size by conviction score\n"
+        response += "* Mancini trades: Wait for acceptance confirmation\n"
+        response += "* Never mix scoring methodologies\n"
+        response += "* Verify source before ANY SPX trade\n"
         
         self.context.phase = "FOCUS"
-        response += "\n→ Phase updated to FOCUS"
+        response += "\n-> Phase updated to FOCUS"
         
         return response
     
@@ -485,23 +507,23 @@ class IntentTrader:
         mancini_focus = [i for i in self.context.ideas if i.source == "mancini" and i.score.score >= 0.85]
         
         if not dp_focus and not mancini_focus:
-            return "❌ No focus trades identified. Run analysis first."
+            return "X No focus trades identified. Run analysis first."
             
         response = "=== TODAY'S FOCUS TRADES ===\n\n"
         
         if dp_focus:
-            response += "🎯 DP FOCUS (0.90+):\n"
+            response += "DP FOCUS (0.90+):\n"
             for idea in dp_focus:
                 entry = f" @ {idea.entry}" if idea.entry else ""
-                response += f"• {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
+                response += f"* {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
                 
         if mancini_focus:
-            response += "\n📈 MANCINI FOCUS (0.85+):\n"
+            response += "\nMANCINI FOCUS (0.85+):\n"
             for idea in mancini_focus:
                 entry = f" @ {idea.entry}" if idea.entry else ""
-                response += f"• {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
+                response += f"* {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
                 if idea.notes:
-                    response += f"  → {idea.notes}\n"
+                    response += f"  -> {idea.notes}\n"
                     
         return response
     
@@ -517,15 +539,15 @@ class IntentTrader:
         if not ideas:
             # Determine by instrument type
             if ticker in ["ES", "NQ", "RTY", "YM"]:
-                return f"✅ {ticker} is a futures contract → Always use Mancini scoring"
+                return f"OK {ticker} is a futures contract -> Always use Mancini scoring"
             elif ticker == "SPX":
-                return f"⚠️ {ticker} requires source verification. Found in both systems?"
+                return f"! {ticker} requires source verification. Found in both systems?"
             else:
-                return f"✅ {ticker} is a stock/ETF → Always use DP scoring"
+                return f"OK {ticker} is a stock/ETF -> Always use DP scoring"
                 
         response = f"=== SOURCE CHECK: {ticker} ===\n"
         for idea in ideas:
-            response += f"• Source: {idea.source.upper()}\n"
+            response += f"* Source: {idea.source.upper()}\n"
             response += f"  Score: {idea.score.score:.2f} ({idea.score.label})\n"
             if idea.entry:
                 response += f"  Entry: {idea.entry}\n"
@@ -554,7 +576,7 @@ class IntentTrader:
             if ticker in ["ES", "NQ", "RTY", "YM"]:
                 source = "mancini"
             elif ticker == "SPX":
-                return "⚠️ SPX requires source: 'add SPX dp focus trade' or 'add SPX mancini fb'"
+                return "! SPX requires source: 'add SPX dp focus trade' or 'add SPX mancini fb'"
             else:
                 source = "dp"
             phrase = " ".join(parts[2:]).lower()
@@ -569,7 +591,7 @@ class IntentTrader:
                         score=ConvictionScore(score, "dp", label)
                     )
                     self.context.ideas.append(idea)
-                    return f"✅ Added {ticker} from DP: {label} ({score:.2f})"
+                    return f"OK Added {ticker} from DP: {label} ({score:.2f})"
                     
         elif source == "mancini":
             for setup_phrase, (score, label) in MANCINI_SETUP_MAP.items():
@@ -580,9 +602,9 @@ class IntentTrader:
                         score=ConvictionScore(score, "mancini", label)
                     )
                     self.context.ideas.append(idea)
-                    return f"✅ Added {ticker} from Mancini: {label} ({score:.2f})"
+                    return f"OK Added {ticker} from Mancini: {label} ({score:.2f})"
                     
-        return f"❌ No matching pattern found for '{phrase}'"
+        return f"X No matching pattern found for '{phrase}'"
     
     def handle_execute(self, message: str) -> str:
         """Execute a trade with source validation."""
@@ -610,7 +632,7 @@ class IntentTrader:
         ideas = [i for i in self.context.ideas if i.ticker == ticker]
         if not ideas:
             if ticker == "SPX":
-                return "⚠️ SPX trade requires source verification. Which system?"
+                return "! SPX trade requires source verification. Which system?"
             # Auto-assign source
             source = "mancini" if ticker in ["ES", "NQ", "RTY", "YM"] else "dp"
         else:
@@ -633,21 +655,21 @@ class IntentTrader:
         self.context.phase = "MANAGE"
         
         response = f"=== EXECUTED ===\n"
-        response += f"📊 {side.upper()} {qty} {ticker}"
+        response += f"{side.upper()} {qty} {ticker}"
         if price > 0:
             response += f" @ {price}"
-        response += f"\n✓ Source: {source.upper()}\n"
-        response += f"✓ Phase → MANAGE\n"
+        response += f"\nSource: {source.upper()}\n"
+        response += f"Phase -> MANAGE\n"
         
         # Add management rules based on source
         if source == "mancini":
-            response += "\n📈 Mancini Rules:\n"
-            response += "• Lock 75% at first target\n"
-            response += "• Trail runner to next level\n"
+            response += "\nMancini Rules:\n"
+            response += "* Lock 75% at first target\n"
+            response += "* Trail runner to next level\n"
         else:
-            response += "\n🎯 DP Rules:\n"
-            response += "• Flexible management\n"
-            response += "• Adjust on sentiment\n"
+            response += "\nDP Rules:\n"
+            response += "* Flexible management\n"
+            response += "* Adjust on sentiment\n"
             
         return response
     
@@ -661,34 +683,34 @@ class IntentTrader:
         ideas = [i for i in self.context.ideas if i.ticker == ticker]
         
         if not ideas:
-            return f"❌ No analysis for {ticker}. Run analysis first."
+            return f"X No analysis for {ticker}. Run analysis first."
             
         best_idea = max(ideas, key=lambda i: i.score.score)
         
         response = f"=== POSITION SIZE: {ticker} ===\n"
-        response += f"📊 Source: {best_idea.source.upper()}\n"
-        response += f"📈 Score: {best_idea.score.score:.2f} ({best_idea.score.label})\n\n"
+        response += f"Source: {best_idea.source.upper()}\n"
+        response += f"Score: {best_idea.score.score:.2f} ({best_idea.score.label})\n\n"
         
         if best_idea.source == "dp":
             if best_idea.score.score >= 0.90:
-                response += "💰 Size: FULL SIZE+ (Focus trade)\n"
+                response += "Size: FULL SIZE+ (Focus trade)\n"
             elif best_idea.score.score >= 0.70:
-                response += "💰 Size: FULL SIZE (High conviction)\n"
+                response += "Size: FULL SIZE (High conviction)\n"
             elif best_idea.score.score >= 0.50:
-                response += "💰 Size: HALF SIZE (Medium conviction)\n"
+                response += "Size: HALF SIZE (Medium conviction)\n"
             else:
-                response += "💰 Size: QUARTER SIZE (Low conviction)\n"
+                response += "Size: QUARTER SIZE (Low conviction)\n"
         else:  # mancini
             if best_idea.score.label == "FB":
-                response += "💰 Size: FULL SIZE (Failed Breakdown)\n"
+                response += "Size: FULL SIZE (Failed Breakdown)\n"
             elif best_idea.score.score >= 0.70:
-                response += "💰 Size: FULL SIZE (Strong setup)\n"
+                response += "Size: FULL SIZE (Strong setup)\n"
             else:
-                response += "💰 Size: HALF SIZE (Weaker setup)\n"
+                response += "Size: HALF SIZE (Weaker setup)\n"
                 
         # Mode adjustment
         if self.context.mode == "Mode2":
-            response += "\n⚠️ Mode 2 Market: Consider reducing size"
+            response += "\n! Mode 2 Market: Consider reducing size"
             
         return response
     
@@ -697,7 +719,7 @@ class IntentTrader:
     def handle_positions(self, message: str) -> str:
         """Show current positions with P&L."""
         if not self.context.positions:
-            return "📊 No open positions"
+            return "No open positions"
             
         response = "=== OPEN POSITIONS ===\n"
         total_unrealized = 0
@@ -707,22 +729,22 @@ class IntentTrader:
         mancini_positions = [p for p in self.context.positions if p.source == "mancini"]
         
         if dp_positions:
-            response += "\n🎯 DP POSITIONS:\n"
+            response += "\nDP POSITIONS:\n"
             for pos in dp_positions:
-                response += f"• {pos.side.upper()} {pos.ticker} {pos.qty}@{pos.entry:.2f}"
-                response += f" → ${pos.pnl:+.2f} ({pos.pnl_pct:+.1f}%)\n"
+                response += f"* {pos.side.upper()} {pos.ticker} {pos.qty}@{pos.entry:.2f}"
+                response += f" -> ${pos.pnl:+.2f} ({pos.pnl_pct:+.1f}%)\n"
                 total_unrealized += pos.pnl
                 
         if mancini_positions:
-            response += "\n📈 MANCINI POSITIONS:\n"
+            response += "\nMANCINI POSITIONS:\n"
             for pos in mancini_positions:
-                response += f"• {pos.side.upper()} {pos.ticker} {pos.qty}@{pos.entry:.2f}"
-                response += f" → ${pos.pnl:+.2f} ({pos.pnl_pct:+.1f}%)\n"
+                response += f"* {pos.side.upper()} {pos.ticker} {pos.qty}@{pos.entry:.2f}"
+                response += f" -> ${pos.pnl:+.2f} ({pos.pnl_pct:+.1f}%)\n"
                 total_unrealized += pos.pnl
                 
-        response += f"\n💰 Unrealized: ${total_unrealized:+.2f}\n"
-        response += f"💵 Realized: ${self.context.realized_pnl:.2f}\n"
-        response += f"📊 Total P&L: ${self.context.realized_pnl + total_unrealized:+.2f}"
+        response += f"\nUnrealized: ${total_unrealized:+.2f}\n"
+        response += f"Realized: ${self.context.realized_pnl:.2f}\n"
+        response += f"Total P&L: ${self.context.realized_pnl + total_unrealized:+.2f}"
         
         return response
     
@@ -733,7 +755,7 @@ class IntentTrader:
             # Find all Mancini positions
             mancini_pos = [p for p in self.context.positions if p.source == "mancini" and p.pnl > 0]
             if not mancini_pos:
-                return "❌ No profitable Mancini positions to lock"
+                return "X No profitable Mancini positions to lock"
                 
             ticker = mancini_pos[0].ticker
         else:
@@ -741,13 +763,13 @@ class IntentTrader:
             
         pos = next((p for p in self.context.positions if p.ticker == ticker), None)
         if not pos:
-            return f"❌ No position in {ticker}"
+            return f"X No position in {ticker}"
             
         if pos.source != "mancini":
-            return f"⚠️ 75% rule is for Mancini trades only. {ticker} is a DP trade."
+            return f"! 75% rule is for Mancini trades only. {ticker} is a DP trade."
             
         if pos.pnl <= 0:
-            return f"❌ {ticker} not profitable yet"
+            return f"X {ticker} not profitable yet"
             
         # Calculate 75% exit
         exit_qty = int(pos.qty * 0.75)
@@ -759,10 +781,10 @@ class IntentTrader:
         self.context.realized_pnl += exit_pnl
         
         response = f"=== LOCKED 75% PROFITS ===\n"
-        response += f"📊 {ticker}: Sold {exit_qty} units\n"
-        response += f"💰 Realized: ${exit_pnl:+.2f}\n"
-        response += f"📈 Runner: {remaining_qty} units remain\n"
-        response += "✓ Trail stop on runner to next level"
+        response += f"{ticker}: Sold {exit_qty} units\n"
+        response += f"Realized: ${exit_pnl:+.2f}\n"
+        response += f"Runner: {remaining_qty} units remain\n"
+        response += "Trail stop on runner to next level"
         
         return response
     
@@ -777,35 +799,35 @@ class IntentTrader:
         try:
             new_stop = float(parts[3])
         except ValueError:
-            return "❌ Invalid stop price"
+            return "X Invalid stop price"
             
         # Find position
         pos = next((p for p in self.context.positions if p.ticker == ticker), None)
         if not pos:
-            return f"❌ No position in {ticker}"
+            return f"X No position in {ticker}"
             
         # Validate stop based on source rules
         if pos.side == "long":
             if new_stop >= pos.current:
-                return f"❌ Long stop must be below current price (${pos.current:.2f})"
+                return f"X Long stop must be below current price (${pos.current:.2f})"
             if pos.stop and new_stop < pos.stop:
-                return f"⚠️ Moving stop down from ${pos.stop:.2f} to ${new_stop:.2f} - are you sure?"
+                return f"! Moving stop down from ${pos.stop:.2f} to ${new_stop:.2f} - are you sure?"
         else:  # short
             if new_stop <= pos.current:
-                return f"❌ Short stop must be above current price (${pos.current:.2f})"
+                return f"X Short stop must be above current price (${pos.current:.2f})"
             if pos.stop and new_stop > pos.stop:
-                return f"⚠️ Moving stop up from ${pos.stop:.2f} to ${new_stop:.2f} - are you sure?"
+                return f"! Moving stop up from ${pos.stop:.2f} to ${new_stop:.2f} - are you sure?"
                 
         # Apply source-specific rules
         old_stop = pos.stop
         pos.stop = new_stop
         
         response = f"=== STOP ADJUSTED ===\n"
-        response += f"📊 {ticker} ({pos.source.upper()})\n"
+        response += f"{ticker} ({pos.source.upper()})\n"
         if old_stop:
-            response += f"📍 Old Stop: ${old_stop:.2f}\n"
-        response += f"📍 New Stop: ${new_stop:.2f}\n"
-        response += f"💰 Current: ${pos.current:.2f}\n"
+            response += f"Old Stop: ${old_stop:.2f}\n"
+        response += f"New Stop: ${new_stop:.2f}\n"
+        response += f"Current: ${pos.current:.2f}\n"
         
         # Calculate risk
         if pos.side == "long":
@@ -815,20 +837,20 @@ class IntentTrader:
             risk_per_share = new_stop - pos.current
             risk_pct = (risk_per_share / pos.current) * 100
             
-        response += f"⚠️ Risk: ${risk_per_share:.2f}/share ({risk_pct:.1f}%)\n"
+        response += f"Risk: ${risk_per_share:.2f}/share ({risk_pct:.1f}%)\n"
         
         # Source-specific guidance
         if pos.source == "mancini":
-            response += "\n📈 Mancini Rules:\n"
-            response += "• Never let winner go red\n"
-            response += "• Trail to next level after 75% lock\n"
+            response += "\nMancini Rules:\n"
+            response += "* Never let winner go red\n"
+            response += "* Trail to next level after 75% lock\n"
         else:
-            response += "\n🎯 DP Rules:\n"
-            response += "• Adjust based on sentiment\n"
-            response += "• Wider stops for focus trades\n"
+            response += "\nDP Rules:\n"
+            response += "* Adjust based on sentiment\n"
+            response += "* Wider stops for focus trades\n"
             
         # Journal the stop move
-        journal_entry = f"Moved {ticker} stop: ${old_stop:.2f} → ${new_stop:.2f}" if old_stop else f"Set {ticker} stop: ${new_stop:.2f}"
+        journal_entry = f"Moved {ticker} stop: ${old_stop:.2f} -> ${new_stop:.2f}" if old_stop else f"Set {ticker} stop: ${new_stop:.2f}"
         self.context.journal.append(f"[{datetime.now().isoformat()}] {journal_entry}")
         
         return response
@@ -837,7 +859,7 @@ class IntentTrader:
         """Exit a position."""
         if "all" in message.lower():
             if not self.context.positions:
-                return "❌ No positions to exit"
+                return "X No positions to exit"
                 
             total_pnl = sum(p.pnl for p in self.context.positions)
             self.context.realized_pnl += total_pnl
@@ -850,7 +872,7 @@ class IntentTrader:
             self.context.positions = []
             self.context.phase = "REVIEW"
             
-            return f"✅ CLOSED ALL: P&L ${total_pnl:+.2f}\n→ Phase: REVIEW"
+            return f"OK CLOSED ALL: P&L ${total_pnl:+.2f}\n-> Phase: REVIEW"
             
         # Exit specific position
         symbols = self._extract_symbols(message)
@@ -861,7 +883,7 @@ class IntentTrader:
         pos = next((p for p in self.context.positions if p.ticker == ticker), None)
         
         if not pos:
-            return f"❌ No position in {ticker}"
+            return f"X No position in {ticker}"
             
         # Update price if provided
         levels = self._extract_levels(message)
@@ -877,17 +899,17 @@ class IntentTrader:
             self.context.stops_hit += 1
             
         response = f"=== CLOSED POSITION ===\n"
-        response += f"📊 {ticker}: ${pos.pnl:+.2f} ({pos.pnl_pct:+.1f}%)\n"
-        response += f"✓ Source: {pos.source.upper()}\n"
+        response += f"{ticker}: ${pos.pnl:+.2f} ({pos.pnl_pct:+.1f}%)\n"
+        response += f"Source: {pos.source.upper()}\n"
         
         if pos.pnl < 0:
-            response += "❌ Stop hit"
+            response += "X Stop hit"
         else:
-            response += "✅ Profit taken"
+            response += "OK Profit taken"
             
         if not self.context.positions:
             self.context.phase = "REVIEW"
-            response += "\n\n→ All flat. Phase: REVIEW"
+            response += "\n\n-> All flat. Phase: REVIEW"
             
         return response
     
@@ -896,33 +918,33 @@ class IntentTrader:
     def handle_review(self, message: str) -> str:
         """Review session performance."""
         response = "=== SESSION REVIEW ===\n"
-        response += f"📊 Completed Trades: {self.context.trades_completed}\n"
-        response += f"💵 Realized P&L: ${self.context.realized_pnl:.2f}\n"
-        response += f"❌ Stops Hit: {self.context.stops_hit}\n"
+        response += f"Completed Trades: {self.context.trades_completed}\n"
+        response += f"Realized P&L: ${self.context.realized_pnl:.2f}\n"
+        response += f"Stops Hit: {self.context.stops_hit}\n"
         
         # Performance by source
         dp_trades = len([i for i in self.context.ideas if i.source == "dp"])
         mancini_trades = len([i for i in self.context.ideas if i.source == "mancini"])
         
         if dp_trades > 0:
-            response += f"\n🎯 DP Ideas Generated: {dp_trades}"
+            response += f"\nDP Ideas Generated: {dp_trades}"
         if mancini_trades > 0:
-            response += f"\n📈 Mancini Setups Found: {mancini_trades}"
+            response += f"\nMancini Setups Found: {mancini_trades}"
             
         # Win rate if available
         if self.context.trades_completed > 0:
             win_rate = ((self.context.trades_completed - self.context.stops_hit) / self.context.trades_completed) * 100
-            response += f"\n\n✅ Win Rate: {win_rate:.0f}%"
+            response += f"\n\nWin Rate: {win_rate:.0f}%"
             
         # Overall assessment
         if self.context.realized_pnl > 0:
-            response += "\n\n✅ Positive session - good discipline"
+            response += "\n\nOK Positive session - good discipline"
         elif self.context.realized_pnl < 0:
-            response += "\n\n⚠️ Negative session - review entries"
+            response += "\n\n! Negative session - review entries"
         else:
-            response += "\n\n➖ Breakeven session"
+            response += "\n\n- Breakeven session"
             
-        response += "\n\n→ Ready for COACH phase"
+        response += "\n\n-> Ready for COACH phase"
         self.context.phase = "COACH"
         
         return response
@@ -936,27 +958,27 @@ class IntentTrader:
         mancini_ideas = [i for i in self.context.ideas if i.source == "mancini"]
         
         if dp_ideas:
-            response += "\n🎯 DP/INNER CIRCLE:\n"
+            response += "\nDP/INNER CIRCLE:\n"
             exceptional = len([i for i in dp_ideas if i.score.score >= 0.90])
             high = len([i for i in dp_ideas if 0.70 <= i.score.score < 0.90])
             medium = len([i for i in dp_ideas if 0.50 <= i.score.score < 0.70])
             
-            response += f"• Exceptional (0.90+): {exceptional}\n"
-            response += f"• High (0.70-0.89): {high}\n"
-            response += f"• Medium (0.50-0.69): {medium}\n"
+            response += f"* Exceptional (0.90+): {exceptional}\n"
+            response += f"* High (0.70-0.89): {high}\n"
+            response += f"* Medium (0.50-0.69): {medium}\n"
             
         if mancini_ideas:
-            response += "\n📈 MANCINI BLUEPRINT:\n"
+            response += "\nMANCINI BLUEPRINT:\n"
             fb = len([i for i in mancini_ideas if i.score.label == "FB"])
             reclaim = len([i for i in mancini_ideas if i.score.label == "Reclaim"])
             support = len([i for i in mancini_ideas if i.score.label == "Support"])
             
-            response += f"• Failed Breakdowns: {fb}\n"
-            response += f"• Level Reclaims: {reclaim}\n"
-            response += f"• Support Tests: {support}\n"
+            response += f"* Failed Breakdowns: {fb}\n"
+            response += f"* Level Reclaims: {reclaim}\n"
+            response += f"* Support Tests: {support}\n"
             
-        response += f"\n📊 Market Mode: {self.context.mode}"
-        response += f"\n💰 Total P&L: ${self.context.realized_pnl:.2f}"
+        response += f"\nMarket Mode: {self.context.mode}"
+        response += f"\nTotal P&L: ${self.context.realized_pnl:.2f}"
         
         return response
     
@@ -969,49 +991,49 @@ class IntentTrader:
         
         # Check for revenge trading
         if self.context.stops_hit >= 3:
-            alerts.append("🚨 3+ stops hit - revenge trading risk HIGH")
-            prescriptions.append("• Step away for 30 minutes")
-            prescriptions.append("• Journal about the losses")
-            prescriptions.append("• Return with half size only")
+            alerts.append("!! 3+ stops hit - revenge trading risk HIGH")
+            prescriptions.append("* Step away for 30 minutes")
+            prescriptions.append("* Journal about the losses")
+            prescriptions.append("* Return with half size only")
             
         # Check for overtrading
         if self.context.trades_completed > 10:
-            alerts.append("⚠️ Overtrading detected (>10 trades)")
-            prescriptions.append("• Focus on A+ setups only")
-            prescriptions.append("• Quality over quantity")
+            alerts.append("! Overtrading detected (>10 trades)")
+            prescriptions.append("* Focus on A+ setups only")
+            prescriptions.append("* Quality over quantity")
             
         # Check conviction discipline
         low_conviction_trades = len([i for i in self.context.ideas if i.score.score < 0.50])
         if low_conviction_trades > 3:
-            alerts.append("⚠️ Taking too many low conviction trades")
-            prescriptions.append("• Minimum 0.70 score tomorrow")
-            prescriptions.append("• Review your focus list")
+            alerts.append("! Taking too many low conviction trades")
+            prescriptions.append("* Minimum 0.70 score tomorrow")
+            prescriptions.append("* Review your focus list")
             
         response = "=== COACH FEEDBACK ===\n"
         
         if alerts:
-            response += "\n🚨 BEHAVIORAL ALERTS:\n"
+            response += "\nBEHAVIORAL ALERTS:\n"
             for alert in alerts:
                 response += f"{alert}\n"
                 
-            response += "\n💊 PRESCRIPTIONS:\n"
+            response += "\nPRESCRIPTIONS:\n"
             for rx in prescriptions:
                 response += f"{rx}\n"
         else:
-            response += "\n✅ Good discipline today!\n"
-            response += "• Keep following your plan\n"
-            response += "• Size up on focus trades\n"
-            response += "• Trust your analysis\n"
+            response += "\nOK Good discipline today!\n"
+            response += "* Keep following your plan\n"
+            response += "* Size up on focus trades\n"
+            response += "* Trust your analysis\n"
             
         # Tomorrow's focus
-        response += "\n📝 TOMORROW'S FOCUS:\n"
+        response += "\nTOMORROW'S FOCUS:\n"
         response += "1. Wait for A+ setups only\n"
         response += "2. Respect source-based rules\n"
         response += "3. Honor stops without revenge\n"
         response += "4. Journal after each trade\n"
         
         self.context.phase = "PLAN"
-        response += "\n→ Ready for next session (Phase: PLAN)"
+        response += "\n-> Ready for next session (Phase: PLAN)"
         
         return response
     
@@ -1020,20 +1042,20 @@ class IntentTrader:
         alert = self._check_behavioral_patterns()
         if alert:
             return alert
-        return "✅ No behavioral issues detected"
+        return "OK No behavioral issues detected"
     
     # === UTILITY HANDLERS ===
     
     def handle_help(self, message: str) -> str:
         """Show help."""
         return """
-📚 INTENT TRADER - Natural Language Trading
+INTENT TRADER - Natural Language Trading
 
 === HOW TO TALK TO ME ===
 Just say what you want to do naturally:
-"analyze dp" → I'll analyze DP's morning call
-"buy AAPL" → I'll buy 100 shares of AAPL
-"show positions" → I'll show your current positions
+"analyze dp" - I'll analyze DP's morning call
+"buy AAPL" - I'll buy 100 shares of AAPL
+"show positions" - I'll show your current positions
 
 === MORNING PLANNING ===
 "analyze dp [paste morning call]" - Extract DP trade ideas
@@ -1088,7 +1110,7 @@ Currently in """ + self.context.phase + """ phase"""
         journal_entry = f"Session saved: {filename}"
         self.context.journal.append(f"[{datetime.now().isoformat()}] {journal_entry}")
         
-        return f"""💾 SESSION SAVED
+        return f"""SESSION SAVED
         
 Copy this JSON to restore tomorrow:
 
@@ -1106,7 +1128,7 @@ To restore: Start new conversation with "Initialize Intent Trader with context: 
         json_match = re.search(r'(\{[\s\S]*\})', message)
         
         if not json_match:
-            return """❌ No JSON context found. 
+            return """X No JSON context found. 
             
 To load a saved session:
 1. Copy your saved JSON
@@ -1127,7 +1149,7 @@ To load a saved session:
                 
             self.context.positions = [Position(**pos) for pos in data.get('positions', [])]
             
-            return f"""✅ SESSION RESTORED
+            return f"""OK SESSION RESTORED
             
 Phase: {self.context.phase}
 Positions: {len(self.context.positions)}
@@ -1137,7 +1159,7 @@ P&L: ${self.context.realized_pnl:.2f}
 Ready to continue trading!"""
             
         except Exception as e:
-            return f"❌ Load failed: {str(e)}"
+            return f"X Load failed: {str(e)}"
     
     def handle_journal(self, message: str) -> str:
         """Journal management."""
@@ -1146,23 +1168,23 @@ Ready to continue trading!"""
         if len(parts) == 1:
             # Show last 5 entries
             if not self.context.journal:
-                return "📖 Journal is empty"
-            return "📖 RECENT JOURNAL:\n" + "\n".join(self.context.journal[-5:])
+                return "Journal is empty"
+            return "RECENT JOURNAL:\n" + "\n".join(self.context.journal[-5:])
             
         # Add entry
         entry = f"[{datetime.now().isoformat()}] {parts[1]}"
         self.context.journal.append(entry)
-        return f"✅ Journaled: {parts[1]}"
+        return f"OK Journaled: {parts[1]}"
     
     def handle_reset(self, message: str) -> str:
         """Reset context."""
         self.context = TradingContext()
-        return "✅ Context reset. Starting fresh in PLAN phase."
+        return "OK Context reset. Starting fresh in PLAN phase."
     
     def handle_context(self, message: str) -> str:
         """Show current context."""
         return f"""
-📋 CURRENT CONTEXT
+CURRENT CONTEXT
 Phase: {self.context.phase}
 Mode: {self.context.mode}
 Ideas: {len(self.context.ideas)}
@@ -1191,7 +1213,7 @@ Journal Entries: {len(self.context.journal)}
                     for pos in self.context.positions:
                         if pos.ticker == ticker:
                             pos.current = price
-                            updated.append(f"{ticker} → {price}")
+                            updated.append(f"{ticker} -> {price}")
                             break
                     i += 2
                 except ValueError:
@@ -1200,8 +1222,8 @@ Journal Entries: {len(self.context.journal)}
                 i += 1
                 
         if updated:
-            return "✅ Updated: " + ", ".join(updated)
-        return "❌ No positions updated"
+            return "OK Updated: " + ", ".join(updated)
+        return "X No positions updated"
     
     def handle_quick(self, message: str) -> str:
         """Quick add without full details."""
@@ -1215,7 +1237,7 @@ Journal Entries: {len(self.context.journal)}
         # Find best idea for this ticker
         ideas = [i for i in self.context.ideas if i.ticker == ticker]
         if not ideas:
-            return f"❌ No analysis for {ticker}. Run analysis first."
+            return f"X No analysis for {ticker}. Run analysis first."
             
         best_idea = max(ideas, key=lambda i: i.score.score)
         
@@ -1232,7 +1254,7 @@ Journal Entries: {len(self.context.journal)}
         self.context.positions.append(position)
         self.context.phase = "MANAGE"
         
-        return f"✅ Quick added {ticker} ({best_idea.source.upper()}: {best_idea.score.label})"
+        return f"OK Quick added {ticker} ({best_idea.source.upper()}: {best_idea.score.label})"
     
     def handle_note(self, message: str) -> str:
         """Quick note about a position."""
@@ -1250,19 +1272,19 @@ Journal Entries: {len(self.context.journal)}
             # Add to journal with position context
             entry = f"[{datetime.now().isoformat()}] {ticker} ({pos.source}): {note}"
             self.context.journal.append(entry)
-            return f"✅ Noted: {ticker} - {note}"
+            return f"OK Noted: {ticker} - {note}"
         else:
             # Just journal it
             entry = f"[{datetime.now().isoformat()}] {ticker}: {note}"
             self.context.journal.append(entry)
-            return f"✅ Noted: {note}"
+            return f"OK Noted: {note}"
     
     def handle_market_mode(self, message: str) -> str:
         """Set or check market mode."""
         parts = message.split()
         
         if len(parts) == 2:  # Just "market mode"
-            return f"📊 Current Market Mode: {self.context.mode}"
+            return f"Current Market Mode: {self.context.mode}"
             
         if len(parts) >= 3:
             # Set mode: market mode 1 or market mode 2
@@ -1274,7 +1296,7 @@ Journal Entries: {len(self.context.journal)}
             else:
                 return "Set mode: 'market mode 1' or 'market mode 2'"
                 
-            return f"✅ Market Mode set to: {self.context.mode}"
+            return f"OK Market Mode set to: {self.context.mode}"
             
         return "Usage: 'market mode' to check or 'market mode 1/2' to set"
     
@@ -1283,12 +1305,12 @@ Journal Entries: {len(self.context.journal)}
         dp_focus = [i for i in self.context.ideas if i.source == "dp" and i.score.score >= 0.90]
         
         if not dp_focus:
-            return "❌ No DP focus trades (0.90+)"
+            return "X No DP focus trades (0.90+)"
             
         response = "=== DP FOCUS TRADES ===\n"
         for idea in dp_focus:
             entry = f" @ {idea.entry}" if idea.entry else ""
-            response += f"• {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
+            response += f"* {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
             
         return response
     
@@ -1297,20 +1319,20 @@ Journal Entries: {len(self.context.journal)}
         mancini = [i for i in self.context.ideas if i.source == "mancini"]
         
         if not mancini:
-            return "❌ No Mancini setups identified"
+            return "X No Mancini setups identified"
             
         response = "=== MANCINI SETUPS ===\n"
         for idea in mancini:
             entry = f" @ {idea.entry}" if idea.entry else ""
-            response += f"• {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
+            response += f"* {idea.ticker}: {idea.score.label} ({idea.score.score:.2f}){entry}\n"
             if idea.notes:
-                response += f"  → {idea.notes}\n"
+                response += f"  -> {idea.notes}\n"
                 
         return response
     
     def handle_unknown(self, message: str) -> str:
         """Handle unknown messages."""
-        return f"❓ I didn't understand that. Say 'help' to see what I can do.\nYou're currently in {self.context.phase} phase."
+        return f"? I didn't understand that. Say 'help' to see what I can do.\nYou're currently in {self.context.phase} phase."
     
     # === HELPER METHODS ===
     
@@ -1347,10 +1369,10 @@ Journal Entries: {len(self.context.journal)}
     def _check_behavioral_patterns(self) -> Optional[str]:
         """Check for behavioral issues in real-time."""
         if self.context.stops_hit >= 2 and len(self.context.positions) > 2:
-            return "🚨 COACH ALERT: Overtrading after stops! Reduce size or step away."
+            return "!! COACH ALERT: Overtrading after stops! Reduce size or step away."
             
         if self.context.stops_hit >= 3:
-            return "🚨 COACH ALERT: 3 stops hit - Maximum risk reached. No new trades!"
+            return "!! COACH ALERT: 3 stops hit - Maximum risk reached. No new trades!"
             
         # Check for low quality trades
         if self.context.positions:
@@ -1361,7 +1383,7 @@ Journal Entries: {len(self.context.journal)}
                     active_ideas.append(idea)
                     
             if active_ideas and all(i.score.score < 0.50 for i in active_ideas):
-                return "⚠️ COACH ALERT: All positions are low conviction. Raise your standards!"
+                return "! COACH ALERT: All positions are low conviction. Raise your standards!"
                 
         return None
 
@@ -1419,7 +1441,7 @@ def demo():
     
     for msg in examples:
         print(f"You: {msg}")
-        response = process_command(msg)
+        response = say(msg)
         print(f"Trader:\n{response}\n")
         print("-" * 50 + "\n")
     
@@ -1435,18 +1457,10 @@ if __name__ == "__main__":
     else:
         # If someone runs this file directly
         print("""
-╔════════════════════════════════════════════════╗
-║  Intent Trader v1.0 - AI Assistant Version    ║
-║                                                ║
-║  This version is designed for AI assistants.   ║
-║  For interactive use, modify the main() func.  ║
-║                                                ║
-║  Usage:                                        ║
-║  - initialize_trader() to start                ║
-║  - process_command(msg) to execute messages    ║
-║  - demo() to see examples                      ║
-╚════════════════════════════════════════════════╝
-        """)
-        
-        # Run demo
-        demo()
++------------------------------------------------+
+|  Intent Trader v1.0 - AI Assistant Version     |
+|                                                |
+|  This version is designed for AI assistants.   |
+|  For interactive use, modify the main() func.  |
+|                                                |
+|
