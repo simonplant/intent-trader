@@ -1,18 +1,18 @@
 """
-Intent Trader - Claude-Native Trading Assistant
+Intent Trader - AI Trading Assistant
 Version: 1.0.0
 Date: 2024-05-28
 Author: Solo Trader
 License: MIT
 
 Description:
-    A Claude-native trading assistant that runs entirely within Claude conversations.
-    Provides structured trading workflow with persistent memory across messages.
+    An AI-powered trading assistant that provides structured trading workflow 
+    with persistent memory across messages.
 
 How to Use:
-    1. Start a new Claude conversation
+    1. Start a new conversation with your AI Assistant
     2. Paste this code or say "Initialize Intent Trader"
-    3. Claude maintains your trading state throughout the day
+    3. The AI Assistant maintains your trading state throughout the day
     4. Use natural commands like "analyze dp", "buy AAPL", "show positions"
 
 Features:
@@ -23,8 +23,8 @@ Features:
     - Journal and context persistence within conversation
     - Structured trading vs random chat
 
-This is NOT a standalone Python app - it's designed to enhance Claude
-for systematic trading with memory and structure.
+This is designed to enhance any AI Assistant for systematic trading 
+with memory and structure.
 """
 
 import re
@@ -950,7 +950,7 @@ Copy this JSON to restore tomorrow:
 {json_str}
 ```
 
-To restore: Start new chat with "Initialize Intent Trader with context: [paste JSON]"
+To restore: Start new conversation with "Initialize Intent Trader with context: [paste JSON]"
 """
     
     def handle_load(self, message: str) -> str:
@@ -1286,19 +1286,19 @@ Journal Entries: {len(self.context.journal)}
 def main():
     """
     NOTE: This main() function is for testing/development only.
-    In production, Claude runs the IntentTrader directly in conversation.
+    In production, the AI Assistant runs the IntentTrader directly in conversation.
     
-    To use in Claude:
+    To use with your AI Assistant:
     1. Start a new conversation
     2. Say "Initialize Intent Trader for today's trading"
-    3. Claude will maintain your state throughout the day
+    3. The AI Assistant will maintain your state throughout the day
     """
     print("""
     ====================================================
     This is LOCAL TESTING MODE
     
-    For real trading, use this system in Claude:
-    1. Copy this code into a new Claude chat
+    For real trading, use this system with your AI Assistant:
+    1. Copy this code into a new conversation
     2. Or just say "Initialize Intent Trader"
     3. Trade with structured commands all day
     ====================================================

@@ -1,23 +1,23 @@
-# Intent Trader - Claude-Native Trading Assistant
+# Intent Trader - AI-Native Trading Assistant
 
 **Version:** 1.0.0  
 **Date:** 2024-05-28  
 **Author:** Solo Trader  
 **License:** MIT
 
-A Claude-native trading assistant that runs entirely within Claude conversations, providing structured trading workflow with persistent memory across messages. No installation needed - just start chatting!
+An AI-native trading assistant that runs entirely within AI chat applications, providing structured trading workflow with persistent memory across messages. No installation needed - just start chatting!
 
-## 🎯 What This Is
+## What This Is
 
-**Intent Trader turns Claude into a systematic trading assistant** that:
+**Intent Trader turns AI into a systematic trading assistant** that:
 - Remembers all your positions and P&L
 - Scores trades using YOUR systems (DP/Mancini)
 - Tracks behavioral patterns and coaches you
 - Maintains context throughout your trading day
 
-**This is NOT a Python app you install** - it runs inside Claude!
+**This is NOT a Python app you install** - it runs inside your AI of choice!
 
-## 🎯 Overview
+## Overview
 
 Intent Trader is a production-ready trading discipline system that:
 - **Never mixes trading methodologies** - Each trade scored 100% by its source
@@ -25,11 +25,11 @@ Intent Trader is a production-ready trading discipline system that:
 - **Provides real-time behavioral coaching** - Detects revenge trading, overtrading, and discipline breaks
 - **Maintains complete audit trail** - Every decision logged and recoverable
 
-## 🚀 Quick Start (30 Seconds)
+## Quick Start (30 Seconds)
 
 ### Start Trading Right Now:
 
-1. **Open a new Claude chat**
+1. **Open a new AI chat**
 2. **Say this:**
    ```
   Run the intent_trader.py file and initialize a trading session
@@ -41,48 +41,48 @@ Intent Trader is a production-ready trading discipline system that:
    positions
    ```
 
-That's it! No installation, no Python, no terminal. Just Claude + structure.
+That's it! No installation, no Python, no terminal. Just AI + structure.
 
-### How It Works in Claude
+### How It Works in your AI
 
 ```
 You: Initialize Intent Trader
 
-Claude: ✅ Intent Trader initialized! Ready for PLAN phase.
+AI: Intent Trader initialized! Ready for PLAN phase.
         What's your morning analysis?
 
 You: analyze dp
      AAPL really like this setup above 225, strong conviction
      CRM focus trade here, get aggressive on any dip
 
-Claude: === DP ANALYSIS ===
-        📊 Bias: BULLISH
-        📍 Key Levels: 225
-        🎯 Trade Ideas:
-          • AAPL: High (0.80)
-          • CRM: Exceptional (0.95)
+AI: === DP ANALYSIS ===
+        Bias: BULLISH
+        Key Levels: 225
+        Trade Ideas:
+        • AAPL: High (0.80)
+        • CRM: Exceptional (0.95)
         → Next: Analyze Mancini for confluence
 
 You: buy 100 CRM at 165.50
 
-Claude: === EXECUTED ===
-        📊 LONG 100 CRM @ 165.50
+AI: === EXECUTED ===
+        LONG 100 CRM @ 165.50
         ✓ Source: DP (Focus Trade)
         ✓ Phase → MANAGE
         
-        🎯 DP Rules:
+        DP Rules:
         • Flexible management
         • Adjust on sentiment
 
 You: positions
 
-Claude: === OPEN POSITIONS ===
-        🎯 DP POSITIONS:
+AI: === OPEN POSITIONS ===
+        DP POSITIONS:
         • LONG CRM 100@165.50 → $0.00 (+0.0%)
         
-        💰 Unrealized: $0.00
-        💵 Realized: $0.00
-        📊 Total P&L: $0.00
+        Unrealized: $0.00
+        Realized: $0.00
+        Total P&L: $0.00
 ```
 
 ### Trading Day Example
@@ -91,77 +91,77 @@ Claude: === OPEN POSITIONS ===
 # Pre-market focus
 [FOCUS] > focus trades
 === TODAY'S FOCUS TRADES ===
-🎯 DP FOCUS (0.90+):
+DP FOCUS (0.90+):
 • CRM: Exceptional (0.95)
 
-📈 MANCINI FOCUS (0.85+):
+MANCINI FOCUS (0.85+):
 • ES: FB (0.90) @ 5750
 
 # Execute when ready
 [FOCUS] > buy 100 CRM @ 165.50
 === EXECUTED ===
-📊 LONG 100 CRM @ 165.50
+LONG 100 CRM @ 165.50
 ✓ Source: DP
 ✓ Phase → MANAGE
 
-🎯 DP Rules:
+DP Rules:
 • Flexible management
 • Adjust on sentiment
 
 # Quick position check
 [MANAGE] > positions
 === OPEN POSITIONS ===
-🎯 DP POSITIONS:
+DP POSITIONS:
 • LONG CRM 100@165.50 → $0.00 (+0.0%)
 
-💰 Unrealized: $0.00
-💵 Realized: $0.00
-📊 Total P&L: $0.00
+Unrealized: $0.00
+Realized: $0.00
+Total P&L: $0.00
 
 # Update prices
 [MANAGE] > update CRM 167.20
-✅ Updated: CRM → 167.2
+Updated: CRM → 167.2
 
 [MANAGE] > positions
 === OPEN POSITIONS ===
-🎯 DP POSITIONS:
+DP POSITIONS:
 • LONG CRM 100@165.50 → $170.00 (+1.0%)
 
 # Move stop to breakeven
 [MANAGE] > move stop CRM 165.50
 === STOP MOVED ===
-📊 CRM: None → 165.5
-✅ Position now RISK FREE!
+CRM: None → 165.5
+Position now RISK FREE!
 
 # End of day
 [MANAGE] > exit CRM @ 168.00
 === CLOSED POSITION ===
-📊 CRM: $250.00 (+1.5%)
-✓ Source: DP
-✅ Profit taken
+CRM: $250.00 (+1.5%)
+Source: DP
+Profit taken
 
 → All flat. Phase: REVIEW
 
 [REVIEW] > review
 === SESSION REVIEW ===
-📊 Completed Trades: 1
-💵 Realized P&L: $250.00
-❌ Stops Hit: 0
+Completed Trades: 1
+Realized P&L: $250.00
+Stops Hit: 0
 
-🎯 DP Ideas Generated: 4
-✅ Win Rate: 100%
-✅ Positive session - good discipline
+DP Ideas Generated: 4
+Win Rate: 100%
+Positive session - good discipline
 
 → Ready for COACH phase
 
 [COACH] > coach
 === COACH FEEDBACK ===
-✅ Good discipline today!
+Good discipline today!
 • Keep following your plan
 • Size up on focus trades
 • Trust your analysis
 
-📝 TOMORROW'S FOCUS:
+TOMORROW'S FOCUS:
 1. Wait for A+ setups only
 2. Respect source-based rules
 3. Honor stops without revenge
@@ -170,10 +170,10 @@ Claude: === OPEN POSITIONS ===
 → Ready for next session (Phase: PLAN)
 
 [PLAN] > save
-💾 Saved to trader_20240528_1545.json
+Saved to trader_20240528_1545.json
 ```
 
-## 📚 Command Reference
+## Command Reference
 
 ### PLAN Phase (Pre-Market)
 - `analyze dp [text]` - Process DP morning call
@@ -218,7 +218,7 @@ Claude: === OPEN POSITIONS ===
 - `reset` - Start fresh
 - `help` - Show all commands
 
-## 🎯 Key Features
+## Key Features
 
 ### Source-Based Scoring System
 Every trade is scored 100% by its source system:
@@ -248,7 +248,7 @@ Real-time alerts for:
 - Low quality trades (taking <0.50 scores)
 - Breaking source discipline
 
-## 🏗️ Architecture
+## Architecture
 
 Built on IAA (Intent-Aware Assistant) principles:
 - **Zero dependencies** - Pure Python stdlib only
@@ -257,7 +257,7 @@ Built on IAA (Intent-Aware Assistant) principles:
 - **Stateless** - Context flows through, no hidden state
 - **Chat-native** - Natural language, no commands to memorize
 
-## 📊 Data Models
+## Data Models
 
 ```python
 @dataclass
@@ -285,7 +285,7 @@ class TradingContext:
     journal: List[str]
 ```
 
-## 🧪 Testing the System
+## Testing the System
 
 ### Day 1: Paper Testing
 1. Run through complete PFEMRC cycle
@@ -305,14 +305,14 @@ class TradingContext:
 - Behavioral alerts helpful ✓
 - Workflow feels natural ✓
 
-## 🚀 Performance
+## Performance
 
 - Response time: <1ms for all operations
 - Memory usage: ~10MB baseline
 - File size: Single 50KB Python file
 - Dependencies: Zero (Python 3.6+ only)
 
-## 📜 License
+## License
 
 MIT License - Use it, modify it, profit from it.
 

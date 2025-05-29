@@ -83,10 +83,10 @@ Ship a production-ready, solo trader-focused, no-bloat trading assistant impleme
 ## 🚀 MVP COMPLETE - READY FOR PRODUCTION
 
 **Delivered Files:**
-- `intent_trader.py` (v1.0.0) - Claude-native trading assistant
+- `intent_trader.py` (v1.0.0) - AI-native trading assistant
 - `README.md` (v1.0.0) - Complete documentation  
 - `test_intent_trader.py` (v1.0.0) - 40+ comprehensive tests
-- `CLAUDE_INSTRUCTIONS.md` (v1.0.0) - How to use in Claude
+- `AI_INSTRUCTIONS.md` (v1.0.0) - How to use in AI
 - `TODO-BACKLOG.md` (v1.0.0) - This file
 - `VERSION` - Version tracking (1.0.0)
 - `CHANGELOG.md` (v1.0.0) - Release history

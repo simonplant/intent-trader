@@ -249,7 +249,7 @@ response = f"""
 2. **No magic** = Every transition is traceable
 3. **Natural language** = No slash commands or syntax to learn
 4. **<1ms response** = Pure in-memory operations
-5. **Claude-native** = Designed for conversational AI context
+5. **AI-native** = Designed for conversational AI context
 
 ### Remember
 The goal is a single file that a solo developer can understand, modify, and own completely. No magic, no frameworks, just pure domain logic in <1ms chat-native responses.

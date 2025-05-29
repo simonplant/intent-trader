@@ -7,7 +7,7 @@ License: MIT
 
 Description:
     Comprehensive test suite for Intent Trader v1.0.0
-    Tests the core logic that runs in Claude conversations.
+    Tests the core logic that runs in AI conversations.
 
 Test Coverage:
     - All PFEMRC phases
@@ -21,7 +21,7 @@ Usage:
     python test_intent_trader.py
     
 Note: These tests verify the logic works correctly.
-      In production, the system runs inside Claude conversations.
+      In production, the system runs inside AI conversations.
 """
 
 import unittest
