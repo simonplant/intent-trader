@@ -1463,4 +1463,9 @@ if __name__ == "__main__":
 |  This version is designed for AI assistants.   |
 |  For interactive use, modify the main() func.  |
 |                                                |
-|
+|  Usage:                                        |
+|  - initialize_trader() to start                |
+|  - say(message) to execute messages            |
+|  - demo() to see examples                      |
++------------------------------------------------+
+        """)
