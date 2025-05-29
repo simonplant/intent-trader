@@ -20,7 +20,7 @@ Initialize Intent Trader for today's trading session
 ### Option 2: With Your Analysis
 Start a new Claude chat and say:
 ```
-Initialize Intent Trader and analyze this:
+Run the intent_trader.py file and initialize a trading session
 
 DP Morning Call:
 AAPL focus trade love this above 225

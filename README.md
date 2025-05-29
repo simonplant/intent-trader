@@ -32,7 +32,7 @@ Intent Trader is a production-ready trading discipline system that:
 1. **Open a new Claude chat**
 2. **Say this:**
    ```
-   Initialize Intent Trader for today's trading session
+  Run the intent_trader.py file and initialize a trading session
    ```
 3. **Start trading:**
    ```
