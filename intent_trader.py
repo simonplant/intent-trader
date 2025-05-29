@@ -1373,8 +1373,8 @@ def initialize_trader():
     trader = IntentTrader()
     return trader
 
-def process_command(message: str) -> str:
-    """Process a trading message and return the response."""
+def say(message: str) -> str:
+    """Just say what you want naturally."""
     global trader
     if trader is None:
         trader = IntentTrader()
