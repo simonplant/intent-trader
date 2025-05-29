@@ -450,40 +450,75 @@ class TestIntentTrader(unittest.TestCase):
         self.assertIn("MANCINI POSITIONS", response)
 
     def test_chart_analysis_bullish(self):
-        """Test chart handler for bullish MA alignment."""
-        response = self.trader.process("chart shows AAPL above 8 and above 21 with green traffic")
+        """Test chart handler for bullish MA alignment and strong long bias."""
+        response = self.trader.process("chart shows AAPL above 8 and above 21 with bull flag above yh")
         self.assertIn("bullish", response.lower())
-        self.assertIn("8 and 21", response)
-        self.assertIn("pullback entries", response)
-        self.assertIn("AAPL", response)
+        self.assertIn("STRONG LONG", response)
+        self.assertIn("buy AAPL", response)
+        # Should auto-create idea
+        idea = next((i for i in self.trader.context.ideas if i.ticker == "AAPL"), None)
+        self.assertIsNotNone(idea)
+        self.assertGreaterEqual(idea.score.score, 0.70)
+        self.assertEqual(idea.source, "dp")
 
     def test_chart_analysis_bearish(self):
-        """Test chart handler for bearish MA alignment."""
-        response = self.trader.process("chart shows TSLA below 8 and below 21 with red traffic")
+        """Test chart handler for bearish MA alignment and strong short bias."""
+        response = self.trader.process("chart shows TSLA below 8 and below 21 with bear flag below yl")
         self.assertIn("bearish", response.lower())
-        self.assertIn("avoid longs", response.lower())
-        self.assertIn("TSLA", response)
+        self.assertIn("STRONG SHORT", response)
+        self.assertIn("buy TSLA", response)  # Suggests execution
+        idea = next((i for i in self.trader.context.ideas if i.ticker == "TSLA"), None)
+        self.assertIsNotNone(idea)
+        self.assertGreaterEqual(idea.score.score, 0.70)
+        self.assertEqual(idea.source, "dp")
 
-    def test_chart_pattern_flag(self):
-        """Test chart handler for flag pattern recognition."""
-        response = self.trader.process("I see a bull flag pattern with white lines on SPY")
-        self.assertIn("flag pattern", response.lower())
-        self.assertIn("bull flags typically break higher", response.lower())
-        self.assertIn("SPY", response)
+    def test_chart_analysis_mancini_fb(self):
+        """Test chart handler for Mancini failed breakdown pattern."""
+        response = self.trader.process("chart shows ES fb above yh")
+        self.assertIn("MANCINI_FB", response)
+        self.assertIn("STRONG LONG", response)
+        idea = next((i for i in self.trader.context.ideas if i.ticker == "ES"), None)
+        self.assertIsNotNone(idea)
+        self.assertEqual(idea.source, "mancini")
+        self.assertEqual(idea.score.label, "FB")
 
-    def test_chart_visual_explanation(self):
-        """Test chart handler for visual element explanation."""
-        response = self.trader.process("what does yh mean?")
-        self.assertIn("yesterday's high", response.lower())
-        response2 = self.trader.process("what does orange line mean?")
-        self.assertIn("100 sma", response2.lower())
+    def test_chart_analysis_level_interpretation(self):
+        """Test chart handler for level relationship analysis."""
+        response = self.trader.process("chart shows AAPL between yh and yl")
+        self.assertIn("Range bound", response)
+        self.assertIn("WAIT", response)
 
-    def test_chart_analysis_fallback(self):
-        """Test chart handler fallback/help response."""
-        response = self.trader.process("chart help")
-        self.assertIn("analyze your chart", response.lower())
-        response2 = self.trader.process("see something unusual")
-        self.assertIn("analyze your chart", response2.lower())
+    def test_chart_analysis_no_pattern(self):
+        """Test chart handler with no clear pattern or ticker."""
+        response = self.trader.process("chart shows nothing special")
+        self.assertIn("YELLOW", response)
+        self.assertIn("WAIT", response)
+
+    def test_chart_analysis_journal_update(self):
+        """Test that chart handler updates journal with context."""
+        self.trader.process("chart shows AAPL above 8 and above 21 with bull flag")
+        last_entry = self.trader.context.journal[-1]
+        self.assertIn("Chart: AAPL", last_entry)
+        self.assertIn("GREEN", last_entry)
+        self.assertIn("BULL_FLAG", last_entry)
+
+    def test_chart_analysis_multiple_patterns(self):
+        """Test chart handler with multiple patterns, only first detected used."""
+        response = self.trader.process("chart shows AAPL bull flag and reclaim above yh")
+        self.assertIn("BULL_FLAG", response)
+        self.assertNotIn("RECLAIM (score: 0.7)", response)  # Only first pattern
+
+    def test_chart_analysis_no_ticker(self):
+        """Test chart handler with no ticker mentioned."""
+        response = self.trader.process("chart shows bull flag above yh")
+        self.assertIn("STRONG LONG", response)
+        self.assertIn("this", response)  # No ticker fallback
+
+    def test_chart_analysis_edge_case(self):
+        """Test chart handler with ambiguous input."""
+        response = self.trader.process("chart shows above 8 but below 21")
+        self.assertIn("YELLOW", response)
+        self.assertIn("WAIT", response)
 
 
 class TestHelperMethods(unittest.TestCase):

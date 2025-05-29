@@ -1527,111 +1527,111 @@ Journal Entries: {len(self.context.journal)}
         return None
 
     def handle_chart(self, message: str) -> str:
-        """Decode chart visuals from natural conversation."""
+        """Decode chart visuals and link to actionable trades."""
         msg = message.lower()
-        from datetime import datetime
-        VISUALS = {
-            'cyan': '8 SMA short-term momentum',
-            'green traffic': 'Price above both 8 & 21 - bullish',
-            'yellow traffic': 'Price between MAs - neutral',
-            'red traffic': 'Price below both 8 & 21 - bearish',
-            'orange line': '100 SMA structural level',
-            'thick red': '200 SMA institutional level',
-            'thin yellow': 'Daily VWAP',
-            'dashed yellow': 'Anchored VWAP from Jan 1',
-            'grey bands': 'Keltner volatility channels',
-            'white solid': 'Trendline or pattern boundary',
-            'white dashed': 'Extended moving average (like 8d MA)',
-            'white lines': 'Trendlines, flags, or patterns',
-            'dotted horizontal': 'Pivot points',
-            'cyan bars': 'ES open interest walls',
-            'yh': "Yesterday's high - key resistance",
-            'yl': "Yesterday's low - key support",
-            'hod': 'High of day - intraday resistance',
-            'lod': 'Low of day - intraday support',
-            'flag': 'Flag pattern - continuation setup',
-            'megaphone': 'Megaphone pattern - expanding volatility',
-            'ascending': 'Uptrend line - bullish structure',
-            'descending': 'Downtrend line - bearish structure'
-        }
         ticker = next((s for s in self._extract_symbols(msg)), None)
-        response = ""
-        if "what do you see" in msg or "analyze" in msg or "chart" in msg:
-            found_visuals = []
-            for visual, meaning in VISUALS.items():
-                if visual in msg:
-                    found_visuals.append(meaning)
-            if 'above 8' in msg and 'above 21' in msg:
-                response = "I see strong bullish momentum with price above both the 8 and 21 SMAs. "
-                response += "This is a green light setup where you want to look for pullback entries. "
-            elif 'below 8' in msg and 'below 21' in msg:
-                response = "Price is below both the 8 and 21 SMAs showing bearish momentum. "
-                response += "This is a red light - avoid longs and consider shorting bounces. "
-            else:
-                response = "The chart shows "
-            if 'failed breakdown' in msg or 'fb' in msg:
-                response += "This looks like a failed breakdown pattern - Mancini's primary edge with 85%+ win rate. "
-                response += "Watch for acceptance back above the level. "
-            if 'reclaim' in msg:
-                response += "Price has reclaimed a key level which is bullish. "
-            if 'flag' in msg:
-                response += "There's a flag pattern forming - this is a continuation setup. "
-                if 'bull flag' in msg:
-                    response += "Bull flags typically break higher after consolidation. "
-                elif 'bear flag' in msg:
-                    response += "Bear flags typically break lower after the bounce. "
-            if 'megaphone' in msg:
-                response += "The megaphone pattern shows expanding volatility - expect wider swings and use wider stops. "
-            if 'yh' in msg or "yesterday's high" in msg or "yesterdays high" in msg:
-                response += "Price is near yesterday's high - this often acts as resistance until broken. "
-                if 'above' in msg:
-                    response += "Breaking above yH is bullish and often leads to continuation. "
-            if 'yl' in msg or "yesterday's low" in msg or "yesterdays low" in msg:
-                response += "Price is near yesterday's low - this often acts as support. "
-                if 'below' in msg:
-                    response += "Breaking below yL is bearish and suggests further downside. "
-            if 'hod' in msg or 'high of day' in msg:
-                response += "At the high of day - watch for either breakout continuation or rejection. "
-            if 'lod' in msg or 'low of day' in msg:
-                response += "At the low of day - watch for bounce buyers or breakdown sellers. "
-            if 'ascending' in msg or 'uptrend' in msg:
-                response += "The ascending trendline shows bullish structure - look for bounces off this line. "
-            if 'descending' in msg or 'downtrend' in msg:
-                response += "The descending trendline shows bearish structure - look for rejections at this line. "
-            if '200' in msg:
-                response += "Price is interacting with the 200 SMA - this is a major institutional level where big players defend positions. "
-            if 'vwap' in msg:
-                if 'above' in msg:
-                    response += "Trading above VWAP shows intraday strength. "
-                elif 'below' in msg:
-                    response += "Trading below VWAP shows intraday weakness. "
-                elif 'test' in msg:
-                    response += "Testing VWAP is a key decision point - watch for acceptance or rejection. "
-            if 'white' in msg:
-                if 'dashed' in msg:
-                    response += "The white dashed line likely represents an extended timeframe MA like the 8-day. "
-                elif 'solid' in msg or 'line' in msg:
-                    response += "The white lines show important trendlines or pattern boundaries. "
-            if ticker:
-                response += f"For {ticker}, "
-                if 'bullish' in response.lower():
-                    response += "I'd look for long entries on pullbacks to support. "
-                elif 'bearish' in response.lower():
-                    response += "I'd look for short entries on failed bounces. "
-                else:
-                    response += "I'd wait for a clearer setup to develop. "
-            if not response:
-                response = "Tell me what you see on the chart - mention the price relative to key MAs, any patterns, or specific levels like yH/yL."
-        elif "mean" in msg and any(word in msg for word in ['cyan', 'orange', 'red', 'yellow', 'green', 'white', 'yh', 'yl', 'hod', 'lod']):
-            for visual, meaning in VISUALS.items():
-                if visual in msg:
-                    response = f"The {visual} represents {meaning}. "
-                    break
+        
+        # Quick pattern matchers
+        patterns = {
+            'fb|failed breakdown': ('MANCINI_FB', 0.85),
+            'bull flag|bullflag': ('BULL_FLAG', 0.75),
+            'bear flag|bearflag': ('BEAR_FLAG', 0.75),
+            'reclaim': ('RECLAIM', 0.70),
+            'megaphone': ('MEGAPHONE', 0.50),
+            'ascending triangle': ('ASC_TRIANGLE', 0.70),
+            'descending triangle': ('DESC_TRIANGLE', 0.70)
+        }
+        
+        # Level relationships
+        level_tests = {
+            'above yh': 'Breakout mode - momentum long',
+            'below yl': 'Breakdown mode - momentum short',
+            'between yh and yl': 'Range bound - fade extremes',
+            'at hod': 'Testing session highs',
+            'at lod': 'Testing session lows',
+            'above 200': 'Institutional support confirmed',
+            'below 200': 'Institutional resistance overhead'
+        }
+        
+        # Traffic light status
+        if 'above 8' in msg and 'above 21' in msg:
+            momentum = 'GREEN'
+            bias = 'long'
+        elif 'below 8' in msg and 'below 21' in msg:
+            momentum = 'RED'
+            bias = 'short'
         else:
-            response = "I can help analyze your chart. Just tell me what you see - like 'AAPL is above yH testing ascending trendline' or 'seeing a bull flag above the 8 and 21'."
-        if ticker and response:
-            self.context.journal.append(f"[{datetime.now().isoformat()}] Chart observation: {ticker}")
-        return response.strip()
+            momentum = 'YELLOW'
+            bias = 'neutral'
+        
+        # Detect pattern
+        detected_pattern = None
+        pattern_score = 0
+        for pattern_key, (pattern_name, score) in patterns.items():
+            if any(p in msg for p in pattern_key.split('|')):
+                detected_pattern = pattern_name
+                pattern_score = score
+                break
+        
+        # Build response
+        response = f"=== CHART READ"
+        if ticker:
+            response += f": {ticker}"
+        response += " ===\n\n"
+        
+        # Momentum first
+        response += f"Momentum: {momentum} LIGHT\n"
+        
+        # Pattern if found
+        if detected_pattern:
+            response += f"Pattern: {detected_pattern} (score: {pattern_score})\n"
+            
+            # Auto-create idea if high conviction
+            if ticker and pattern_score >= 0.70:
+                # Determine source based on pattern type
+                if detected_pattern == 'MANCINI_FB':
+                    source = 'mancini'
+                    label = 'FB'
+                else:
+                    source = 'dp'
+                    label = 'High' if pattern_score >= 0.70 else 'Medium'
+                    
+                idea = TradeIdea(
+                    ticker=ticker,
+                    source=source,
+                    score=ConvictionScore(pattern_score, source, label),
+                    notes=f"Chart pattern: {detected_pattern}"
+                )
+                self.context.ideas.append(idea)
+                response += f"-> Added to ideas (source: {source})\n"
+        
+        # Level analysis
+        for test, interpretation in level_tests.items():
+            if all(word in msg for word in test.split()):
+                response += f"Levels: {interpretation}\n"
+                break
+        
+        # Generate trade bias
+        response += f"\nTRADE BIAS: "
+        if momentum == 'GREEN' and (detected_pattern in ['BULL_FLAG', 'ASC_TRIANGLE', 'MANCINI_FB'] or 'above yh' in msg):
+            response += f"STRONG LONG - Size up on {ticker if ticker else 'this'}"
+        elif momentum == 'RED' and (detected_pattern in ['BEAR_FLAG', 'DESC_TRIANGLE'] or 'below yl' in msg):
+            response += f"STRONG SHORT - Size up on {ticker if ticker else 'this'}"
+        elif momentum == 'YELLOW':
+            response += "WAIT - Need momentum confirmation"
+        else:
+            response += f"STANDARD {bias.upper()} - Normal size"
+        
+        # Quick action
+        if ticker and pattern_score >= 0.70:
+            response += f"\n\n-> Say 'buy {ticker}' to execute"
+        
+        # Add context for other handlers
+        if ticker:
+            from datetime import datetime
+            self.context.journal.append(f"[{datetime.now().isoformat()}] Chart: {ticker} {momentum} {detected_pattern or 'no pattern'}")
+        
+        return response
 
 
 # === MAIN EXECUTION ===
