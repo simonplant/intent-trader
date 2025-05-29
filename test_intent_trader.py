@@ -449,6 +449,42 @@ class TestIntentTrader(unittest.TestCase):
         self.assertIn("DP POSITIONS", response)
         self.assertIn("MANCINI POSITIONS", response)
 
+    def test_chart_analysis_bullish(self):
+        """Test chart handler for bullish MA alignment."""
+        response = self.trader.process("chart shows AAPL above 8 and above 21 with green traffic")
+        self.assertIn("bullish", response.lower())
+        self.assertIn("8 and 21", response)
+        self.assertIn("pullback entries", response)
+        self.assertIn("AAPL", response)
+
+    def test_chart_analysis_bearish(self):
+        """Test chart handler for bearish MA alignment."""
+        response = self.trader.process("chart shows TSLA below 8 and below 21 with red traffic")
+        self.assertIn("bearish", response.lower())
+        self.assertIn("avoid longs", response.lower())
+        self.assertIn("TSLA", response)
+
+    def test_chart_pattern_flag(self):
+        """Test chart handler for flag pattern recognition."""
+        response = self.trader.process("I see a bull flag pattern with white lines on SPY")
+        self.assertIn("flag pattern", response.lower())
+        self.assertIn("bull flags typically break higher", response.lower())
+        self.assertIn("SPY", response)
+
+    def test_chart_visual_explanation(self):
+        """Test chart handler for visual element explanation."""
+        response = self.trader.process("what does yh mean?")
+        self.assertIn("yesterday's high", response.lower())
+        response2 = self.trader.process("what does orange line mean?")
+        self.assertIn("100 sma", response2.lower())
+
+    def test_chart_analysis_fallback(self):
+        """Test chart handler fallback/help response."""
+        response = self.trader.process("chart help")
+        self.assertIn("analyze your chart", response.lower())
+        response2 = self.trader.process("see something unusual")
+        self.assertIn("analyze your chart", response2.lower())
+
 
 class TestHelperMethods(unittest.TestCase):
     """Test internal helper methods."""
