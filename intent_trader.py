@@ -2,7 +2,7 @@
 Intent Trader - AI Trading Assistant
 Version: 1.0.0
 Date: 2024-05-28
-Author: Solo Trader
+Author: Simon Plant
 License: MIT
 
 Description:
