@@ -1588,7 +1588,7 @@ if __name__ == "__main__":
     
     # Check if running in interactive mode
     if hasattr(sys, 'ps1'):
-        print("Interactive mode detected. Use demo() to see examples.")
+        print("Interactive mode detected. Use Demo to see examples.")
     else:
         # If someone runs this file directly
         print("""
@@ -1601,6 +1601,6 @@ if __name__ == "__main__":
 |  Usage:                                        |
 |  - initialize_trader() to start                |
 |  - say(message) to execute messages            |
-|  - demo() to see examples                      |
+|  - Request a Demo to see examples              |
 +------------------------------------------------+
         """)
