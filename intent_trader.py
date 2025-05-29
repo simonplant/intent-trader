@@ -1289,53 +1289,85 @@ Journal Entries: {len(self.context.journal)}
 
 # === MAIN EXECUTION ===
 
-def main():
-    """
-    NOTE: This main() function is for testing/development only.
-    In production, the AI Assistant runs the IntentTrader directly in conversation.
-    
-    To use with your AI Assistant:
-    1. Start a new conversation
-    2. Say "Initialize Intent Trader for today's trading"
-    3. The AI Assistant will maintain your state throughout the day
-    """
-    print("""
-    ====================================================
-    This is LOCAL TESTING MODE
-    
-    For real trading, use this system with your AI Assistant:
-    1. Copy this code into a new conversation
-    2. Or just say "Initialize Intent Trader"
-    3. Trade with structured commands all day
-    ====================================================
-    """)
-    
-    trader = IntentTrader()
-    
-    print("""
-╔════════════════════════════════════════════════╗
-║  Intent Trader v1.0 - Source-Based Scoring     ║
-║  Type 'help' for commands, 'quit' to exit     ║
-╚════════════════════════════════════════════════╝
-""")
-    
-    while True:
-        try:
-            user_input = input(f"\n[{trader.context.phase}] > ").strip()
-            
-            if user_input.lower() in ['quit', 'exit', 'q']:
-                print("\n👋 Good trading!")
-                break
-                
-            if user_input:
-                response = trader.process(user_input)
-                print(response)
-                
-        except KeyboardInterrupt:
-            print("\n\nUse 'quit' to exit properly.")
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            
+# Global trader instance for AI assistants to use
+trader = None
 
+def initialize_trader():
+    """Initialize a new IntentTrader instance."""
+    global trader
+    trader = IntentTrader()
+    return trader
+
+def process_command(command: str) -> str:
+    """Process a trading command and return the response."""
+    global trader
+    if trader is None:
+        trader = IntentTrader()
+    return trader.process(command)
+
+# Example usage for AI assistants
+def demo():
+    """
+    Demonstration of how to use IntentTrader with an AI Assistant.
+    
+    Example conversation:
+    
+    User: Initialize Intent Trader
+    Assistant: [Creates new IntentTrader instance]
+    
+    User: analyze dp AAPL really like this setup above 225
+    Assistant: [Processes with trader.process("analyze dp AAPL really like this setup above 225")]
+    
+    User: buy AAPL
+    Assistant: [Processes with trader.process("buy AAPL")]
+    """
+    
+    # Initialize trader
+    t = initialize_trader()
+    
+    # Example commands
+    examples = [
+        "help",
+        "analyze dp AAPL is a focus trade above 225, love this setup",
+        "create plan",
+        "buy 100 AAPL @ 225.50",
+        "positions",
+        "move stop AAPL 224.00",
+        "exit AAPL"
+    ]
+    
+    print("=== INTENT TRADER DEMO ===\n")
+    
+    for cmd in examples:
+        print(f"Command: {cmd}")
+        response = process_command(cmd)
+        print(f"Response:\n{response}\n")
+        print("-" * 50 + "\n")
+    
+    return "Demo completed successfully"
+
+# For local testing only - won't run in AI environments
 if __name__ == "__main__":
-    main()
+    import sys
+    
+    # Check if running in interactive mode
+    if hasattr(sys, 'ps1'):
+        print("Interactive mode detected. Use demo() to see examples.")
+    else:
+        # If someone runs this file directly
+        print("""
+╔════════════════════════════════════════════════╗
+║  Intent Trader v1.0 - AI Assistant Version    ║
+║                                                ║
+║  This version is designed for AI assistants.   ║
+║  For interactive use, modify the main() func.  ║
+║                                                ║
+║  Usage:                                        ║
+║  - initialize_trader() to start                ║
+║  - process_command(cmd) to execute commands    ║
+║  - demo() to see examples                      ║
+╚════════════════════════════════════════════════╝
+        """)
+        
+        # Run demo
+        demo()
