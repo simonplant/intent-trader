@@ -1,11 +1,21 @@
-# Intent Trader - Source-Based Trading Assistant
+# Intent Trader - Claude-Native Trading Assistant
 
 **Version:** 1.0.0  
 **Date:** 2024-05-28  
 **Author:** Solo Trader  
 **License:** MIT
 
-A lightning-fast (<1ms) trading assistant implementing the PFEMRC workflow with strict source-based scoring for DP/Inner Circle and Mancini Blueprint systems. Built on Intent-Aware Assistant (IAA) architecture with zero dependencies.
+A Claude-native trading assistant that runs entirely within Claude conversations, providing structured trading workflow with persistent memory across messages. No installation needed - just start chatting!
+
+## 🎯 What This Is
+
+**Intent Trader turns Claude into a systematic trading assistant** that:
+- Remembers all your positions and P&L
+- Scores trades using YOUR systems (DP/Mancini)
+- Tracks behavioral patterns and coaches you
+- Maintains context throughout your trading day
+
+**This is NOT a Python app you install** - it runs inside Claude!
 
 ## 🎯 Overview
 
@@ -15,69 +25,64 @@ Intent Trader is a production-ready trading discipline system that:
 - **Provides real-time behavioral coaching** - Detects revenge trading, overtrading, and discipline breaks
 - **Maintains complete audit trail** - Every decision logged and recoverable
 
-## 🚀 Quick Start
+## 🚀 Quick Start (30 Seconds)
 
-```bash
-# No installation needed - just Python 3.6+
-python intent_trader.py
+### Start Trading Right Now:
+
+1. **Open a new Claude chat**
+2. **Say this:**
+   ```
+   Initialize Intent Trader for today's trading session
+   ```
+3. **Start trading:**
+   ```
+   analyze dp AAPL focus trade love this above 225
+   buy AAPL
+   positions
+   ```
+
+That's it! No installation, no Python, no terminal. Just Claude + structure.
+
+### How It Works in Claude
+
 ```
+You: Initialize Intent Trader
 
-### Morning Routine Example
+Claude: ✅ Intent Trader initialized! Ready for PLAN phase.
+        What's your morning analysis?
 
-```
-[PLAN] > analyze dp
-AAPL really like this setup above 225, strong conviction
-CRM focus trade here, get aggressive on any dip
-TSLA worth watching but not excited below 180
-SPX 5800 calls if we break yesterday's high - DP calling this
+You: analyze dp
+     AAPL really like this setup above 225, strong conviction
+     CRM focus trade here, get aggressive on any dip
 
-=== DP ANALYSIS ===
-📊 Bias: BULLISH
-📍 Key Levels: 225, 180, 5800
-🎯 Trade Ideas:
-  • AAPL: High (0.80)
-  • CRM: Exceptional (0.95)
-  • TSLA: Low (0.45)
-  • SPX: High (0.80)
-→ Next: Analyze Mancini for confluence
+Claude: === DP ANALYSIS ===
+        📊 Bias: BULLISH
+        📍 Key Levels: 225
+        🎯 Trade Ideas:
+          • AAPL: High (0.80)
+          • CRM: Exceptional (0.95)
+        → Next: Analyze Mancini for confluence
 
-[PLAN] > analyze mancini
-ES 5750 failed breakdown setting up, watch for reclaim
-Mode 2 market - complex and choppy
-Support at 5740, resistance 5765
+You: buy 100 CRM at 165.50
 
-=== MANCINI ANALYSIS ===
-📊 Market Mode: Mode2
-📍 ES Levels: 5750, 5740, 5765
-📈 Setups Identified:
-  • FB @ ES 5750
-→ Next: Create unified plan
+Claude: === EXECUTED ===
+        📊 LONG 100 CRM @ 165.50
+        ✓ Source: DP (Focus Trade)
+        ✓ Phase → MANAGE
+        
+        🎯 DP Rules:
+        • Flexible management
+        • Adjust on sentiment
 
-[PLAN] > create plan
+You: positions
 
-=== DAILY TRADING PLAN ===
-📊 Phase: PLAN → FOCUS
-📈 Market Mode: Mode2
-
-🎯 DP/INNER CIRCLE FOCUS:
-Focus Trades (0.90+):
-  • CRM: Exceptional (0.95)
-High Conviction (0.70-0.89):
-  • AAPL: High (0.80)
-  • SPX: High (0.80)
-
-📈 MANCINI BLUEPRINT FOCUS:
-Failed Breakdowns (Primary Edge):
-  • ES: FB @ 5750
-    → ES 5750 = SPX 575
-
-✅ EXECUTION RULES:
-• DP trades: Size by conviction score
-• Mancini trades: Wait for acceptance confirmation
-• Never mix scoring methodologies
-• Verify source before ANY SPX trade
-
-→ Phase updated to FOCUS
+Claude: === OPEN POSITIONS ===
+        🎯 DP POSITIONS:
+        • LONG CRM 100@165.50 → $0.00 (+0.0%)
+        
+        💰 Unrealized: $0.00
+        💵 Realized: $0.00
+        📊 Total P&L: $0.00
 ```
 
 ### Trading Day Example

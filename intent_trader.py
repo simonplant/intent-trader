@@ -884,82 +884,93 @@ class IntentTrader:
         return """
 📚 INTENT TRADER COMMANDS
 
-=== PLAN PHASE ===
-• analyze dp [morning call text]
-• analyze mancini [newsletter text]
+=== QUICK START ===
+Say: "Initialize Intent Trader" to begin
+Then use natural commands like below:
+
+=== PLAN PHASE (Morning) ===
+• analyze dp [paste morning call]
+• analyze mancini [paste newsletter]
 • market mode [1/2]
 • create plan
 
-=== FOCUS PHASE ===
+=== FOCUS PHASE (Pre-Market) ===
 • focus trades - All 0.90+ trades
 • dp focus - DP only focus
 • mancini setups - Mancini only
 • check source TICKER
 
-=== EXECUTE PHASE ===
+=== EXECUTE PHASE (Market Hours) ===
 • buy/sell QTY TICKER @ PRICE
 • buy/sell TICKER (defaults 100 shares)
-• add TICKER - Quick add from ideas
 • quick TICKER - Fast position add
 • size TICKER
 
-=== MANAGE PHASE ===
-• positions
+=== MANAGE PHASE (Intraday) ===
+• positions - Show all with P&L
 • update AAPL 227.50 TSLA 185.20
-• lock 75 [TICKER]
+• lock 75 [TICKER] - Mancini rule
 • move stop TICKER PRICE
 • exit TICKER / exit all
 • note TICKER message
 
-=== REVIEW PHASE ===
-• review
-• performance
+=== REVIEW PHASE (After Hours) ===
+• review - Session summary
+• performance - Detailed stats
 
-=== COACH PHASE ===
-• coach
+=== COACH PHASE (Anytime) ===
+• coach - Get feedback
 • behavioral check
 
 === UTILITIES ===
-• save / load [filename]
-• journal [entry]
+• save - Get JSON to copy
+• load context: {JSON} - Restore
+• journal [entry] - Add note
 • help / reset / context
 
 Current phase: """ + self.context.phase
     
     def handle_save(self, message: str) -> str:
-        """Save context to file."""
+        """Save context to JSON string for copy/paste."""
         filename = f"trader_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
         
         # Convert to dict for JSON
         data = asdict(self.context)
+        json_str = json.dumps(data, indent=2)
         
-        with open(filename, 'w') as f:
-            json.dump(data, f, indent=2)
-            
         # Also append to journal
-        journal_entry = f"Session saved to {filename}"
+        journal_entry = f"Session saved: {filename}"
         self.context.journal.append(f"[{datetime.now().isoformat()}] {journal_entry}")
         
-        return f"💾 Saved to {filename}"
+        return f"""💾 SESSION SAVED
+        
+Copy this JSON to restore tomorrow:
+
+```json
+{json_str}
+```
+
+To restore: Start new chat with "Initialize Intent Trader with context: [paste JSON]"
+"""
     
     def handle_load(self, message: str) -> str:
-        """Load context from file."""
-        # Extract filename if provided
-        parts = message.split()
-        if len(parts) > 1:
-            filename = parts[1]
-        else:
-            # Find most recent
-            import glob
-            files = glob.glob("trader_*.json")
-            if not files:
-                return "❌ No saved files found"
-            filename = max(files)
+        """Load context from JSON string."""
+        # Extract JSON from message
+        import re
+        json_match = re.search(r'(\{[\s\S]*\})', message)
+        
+        if not json_match:
+            return """❌ No JSON context found. 
             
+To load a saved session:
+1. Copy your saved JSON
+2. Say: "load context: {paste JSON here}"
+"""
+        
         try:
-            with open(filename, 'r') as f:
-                data = json.load(f)
-                
+            json_str = json_match.group(1)
+            data = json.loads(json_str)
+            
             # Reconstruct context
             self.context = TradingContext(**data)
             
@@ -970,7 +981,14 @@ Current phase: """ + self.context.phase
                 
             self.context.positions = [Position(**pos) for pos in data.get('positions', [])]
             
-            return f"📂 Loaded from {filename}"
+            return f"""✅ SESSION RESTORED
+            
+Phase: {self.context.phase}
+Positions: {len(self.context.positions)}
+Ideas: {len(self.context.ideas)}
+P&L: ${self.context.realized_pnl:.2f}
+
+Ready to continue trading!"""
             
         except Exception as e:
             return f"❌ Load failed: {str(e)}"

@@ -7,7 +7,7 @@ License: MIT
 
 Description:
     Comprehensive test suite for Intent Trader v1.0.0
-    Covers all critical paths, edge cases, and integration scenarios.
+    Tests the core logic that runs in Claude conversations.
 
 Test Coverage:
     - All PFEMRC phases
@@ -19,13 +19,16 @@ Test Coverage:
 
 Usage:
     python test_intent_trader.py
+    
+Note: These tests verify the logic works correctly.
+      In production, the system runs inside Claude conversations.
 """
 
 import unittest
 import json
 import os
 from datetime import datetime
-from intent_trader_v1 import (
+from intent_trader import (
     IntentTrader, TradingContext, TradeIdea, Position, 
     ConvictionScore, DP_CONVICTION_MAP, MANCINI_SETUP_MAP
 )
