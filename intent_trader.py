@@ -688,6 +688,73 @@ class IntentTrader:
         
         return response
     
+    def handle_move_stop(self, message: str) -> str:
+        """Move stop loss for a position based on source rules."""
+        # Parse format: move stop AAPL 225.50
+        parts = message.split()
+        if len(parts) < 4:
+            return "Format: move stop AAPL 225.50"
+            
+        ticker = parts[2].upper()
+        try:
+            new_stop = float(parts[3])
+        except ValueError:
+            return "❌ Invalid stop price"
+            
+        # Find position
+        pos = next((p for p in self.context.positions if p.ticker == ticker), None)
+        if not pos:
+            return f"❌ No position in {ticker}"
+            
+        # Validate stop based on source rules
+        if pos.side == "long":
+            if new_stop >= pos.current:
+                return f"❌ Long stop must be below current price (${pos.current:.2f})"
+            if pos.stop and new_stop < pos.stop:
+                return f"⚠️ Moving stop down from ${pos.stop:.2f} to ${new_stop:.2f} - are you sure?"
+        else:  # short
+            if new_stop <= pos.current:
+                return f"❌ Short stop must be above current price (${pos.current:.2f})"
+            if pos.stop and new_stop > pos.stop:
+                return f"⚠️ Moving stop up from ${pos.stop:.2f} to ${new_stop:.2f} - are you sure?"
+                
+        # Apply source-specific rules
+        old_stop = pos.stop
+        pos.stop = new_stop
+        
+        response = f"=== STOP ADJUSTED ===\n"
+        response += f"📊 {ticker} ({pos.source.upper()})\n"
+        if old_stop:
+            response += f"📍 Old Stop: ${old_stop:.2f}\n"
+        response += f"📍 New Stop: ${new_stop:.2f}\n"
+        response += f"💰 Current: ${pos.current:.2f}\n"
+        
+        # Calculate risk
+        if pos.side == "long":
+            risk_per_share = pos.current - new_stop
+            risk_pct = (risk_per_share / pos.current) * 100
+        else:
+            risk_per_share = new_stop - pos.current
+            risk_pct = (risk_per_share / pos.current) * 100
+            
+        response += f"⚠️ Risk: ${risk_per_share:.2f}/share ({risk_pct:.1f}%)\n"
+        
+        # Source-specific guidance
+        if pos.source == "mancini":
+            response += "\n📈 Mancini Rules:\n"
+            response += "• Never let winner go red\n"
+            response += "• Trail to next level after 75% lock\n"
+        else:
+            response += "\n🎯 DP Rules:\n"
+            response += "• Adjust based on sentiment\n"
+            response += "• Wider stops for focus trades\n"
+            
+        # Journal the stop move
+        journal_entry = f"Moved {ticker} stop: ${old_stop:.2f} → ${new_stop:.2f}" if old_stop else f"Set {ticker} stop: ${new_stop:.2f}"
+        self.context.journal.append(f"[{datetime.now().isoformat()}] {journal_entry}")
+        
+        return response
+    
     def handle_exit(self, message: str) -> str:
         """Exit a position."""
         if "all" in message.lower():
@@ -1084,71 +1151,6 @@ Journal Entries: {len(self.context.journal)}
         )
         
         self.context.positions.append(position)
-        
-        return f"✅ Quick added {ticker} ({best_idea.source.upper()}: {best_idea.score.label})"
-    
-    def handle_unknown(self, message: str) -> str:
-        """Handle unknown commands."""
-        return f"❓ Unknown command. Type 'help' for available commands.\nCurrent phase: {self.context.phase}"
-    
-    def handle_update(self, message: str) -> str:
-        """Update position prices quickly."""
-        # Format: update AAPL 227.50 TSLA 185.20
-        parts = message.split()[1:]  # Skip 'update'
-        
-        if not parts:
-            return "Format: update AAPL 227.50 or update all"
-            
-        updated = []
-        i = 0
-        while i < len(parts):
-            if i + 1 < len(parts):
-                ticker = parts[i].upper()
-                try:
-                    price = float(parts[i + 1])
-                    # Find position
-                    for pos in self.context.positions:
-                        if pos.ticker == ticker:
-                            pos.current = price
-                            updated.append(f"{ticker} → {price}")
-                            break
-                    i += 2
-                except ValueError:
-                    i += 1
-            else:
-                i += 1
-                
-        if updated:
-            return "✅ Updated: " + ", ".join(updated)
-        return "❌ No positions updated"
-    
-    def handle_quick(self, message: str) -> str:
-        """Quick add without full details."""
-        # Format: quick AAPL or q AAPL
-        parts = message.split()
-        if len(parts) < 2:
-            return "Format: quick AAPL"
-            
-        ticker = parts[1].upper()
-        
-        # Find best idea for this ticker
-        ideas = [i for i in self.context.ideas if i.ticker == ticker]
-        if not ideas:
-            return f"❌ No analysis for {ticker}. Run analysis first."
-            
-        best_idea = max(ideas, key=lambda i: i.score.score)
-        
-        position = Position(
-            ticker=ticker,
-            source=best_idea.source,
-            side="long",
-            qty=100,
-            entry=100.0,  # Placeholder
-            current=100.0,
-            stop=None
-        )
-        
-        self.context.positions.append(position)
         self.context.phase = "MANAGE"
         
         return f"✅ Quick added {ticker} ({best_idea.source.upper()}: {best_idea.score.label})"
@@ -1226,6 +1228,10 @@ Journal Entries: {len(self.context.journal)}
                 response += f"  → {idea.notes}\n"
                 
         return response
+    
+    def handle_unknown(self, message: str) -> str:
+        """Handle unknown commands."""
+        return f"❓ Unknown command. Type 'help' for available commands.\nCurrent phase: {self.context.phase}"
     
     # === HELPER METHODS ===
     
