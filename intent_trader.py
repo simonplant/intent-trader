@@ -92,6 +92,11 @@ class TradingContext:
     # Analysis storage
     dp_analysis: Dict[str, Any] = field(default_factory=dict)
     mancini_analysis: Dict[str, Any] = field(default_factory=dict)
+    
+    # NEW FIELDS for enhanced reporting
+    moderator_trades: List[Dict[str, Any]] = field(default_factory=list)
+    closed_positions: List[Position] = field(default_factory=list)
+    plan_alignment_score: int = 0
 
 # === SCORING MAPS ===
 
@@ -177,6 +182,7 @@ class IntentTrader:
             # REVIEW Phase
             "review": self.handle_review,
             "performance": self.handle_performance,
+            "daily report": self.handle_daily_report,  # NEW
             
             # COACH Phase
             "coach": self.handle_coach,
@@ -187,6 +193,8 @@ class IntentTrader:
             "save": self.handle_save,
             "load": self.handle_load,
             "journal": self.handle_journal,
+            "log mod": self.handle_log_moderator,  # NEW
+            "export day": self.handle_export_day,  # NEW
             "reset": self.handle_reset,
             "context": self.handle_context,
         }
@@ -874,6 +882,9 @@ class IntentTrader:
             stops_hit = sum(1 for p in self.context.positions if p.pnl < 0)
             self.context.stops_hit += stops_hit
             
+            # Store closed positions
+            self.context.closed_positions.extend(self.context.positions)
+            
             self.context.positions = []
             self.context.phase = "REVIEW"
             
@@ -894,6 +905,9 @@ class IntentTrader:
         levels = self._extract_levels(message)
         if levels:
             pos.current = levels[0]
+            
+        # Store in closed positions
+        self.context.closed_positions.append(pos)
             
         # Close position
         self.context.positions.remove(pos)
@@ -986,6 +1000,99 @@ class IntentTrader:
         response += f"\nTotal P&L: ${self.context.realized_pnl:.2f}"
         
         return response
+    
+    # === NEW HANDLERS ===
+    
+    def handle_log_moderator(self, message: str) -> str:
+        """Log moderator trades: log mod DP bought AAPL 225"""
+        parts = message.lower().split()
+        if len(parts) < 6:
+            return "Format: log mod DP bought AAPL 225"
+        
+        mod_name = parts[2].upper()
+        action = parts[3]
+        ticker = parts[4].upper()
+        price = float(parts[5]) if len(parts) > 5 else 0
+        
+        trade = {
+            "moderator": mod_name,
+            "action": action,
+            "ticker": ticker,
+            "price": price,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        self.context.moderator_trades.append(trade)
+        return f"✓ Logged: {mod_name} {action} {ticker} @ {price}"
+
+    def handle_daily_report(self, message: str) -> str:
+        """Generate comprehensive daily report."""
+        report = f"=== DAILY REPORT {datetime.now().strftime('%Y-%m-%d')} ===\n\n"
+        
+        # Morning Plan
+        report += "MORNING PLAN:\n"
+        if self.context.dp_analysis:
+            report += f"DP Bias: {self.context.dp_analysis.get('bias', 'N/A')}\n"
+        
+        focus_trades = [i for i in self.context.ideas if i.score.score >= 0.90]
+        if focus_trades:
+            report += f"Focus Trades: {', '.join([i.ticker for i in focus_trades])}\n"
+        
+        # My Trades
+        report += "\nMY EXECUTION:\n"
+        all_positions = self.context.positions + self.context.closed_positions
+        for pos in all_positions:
+            planned = "✓" if any(i.ticker == pos.ticker for i in self.context.ideas) else "✗"
+            report += f"{planned} {pos.ticker}: ${pos.pnl:+.2f}\n"
+        
+        # Moderator Trades
+        if self.context.moderator_trades:
+            report += "\nMODERATOR ACTIVITY:\n"
+            for trade in self.context.moderator_trades:
+                report += f"* {trade['moderator']}: {trade['action']} {trade['ticker']} @ {trade['price']}\n"
+        
+        # Performance
+        report += f"\nPERFORMANCE:\n"
+        report += f"My P&L: ${self.context.realized_pnl:+.2f}\n"
+        report += f"Trades: {self.context.trades_completed}\n"
+        report += f"Stops Hit: {self.context.stops_hit}\n"
+        
+        if self.context.trades_completed > 0:
+            win_rate = ((self.context.trades_completed - self.context.stops_hit) / self.context.trades_completed) * 100
+            report += f"Win Rate: {win_rate:.0f}%\n"
+        
+        # Behavioral
+        behavioral_score = 100
+        if self.context.stops_hit >= 3:
+            behavioral_score -= 30
+        if self.context.trades_completed > 10:
+            behavioral_score -= 20
+            
+        report += f"\nBEHAVIORAL SCORE: {behavioral_score}/100\n"
+        
+        return report
+
+    def handle_export_day(self, message: str) -> str:
+        """Export day's activity to markdown."""
+        filename = f"trading_log_{datetime.now().strftime('%Y%m%d')}.md"
+        content = self.handle_daily_report("")
+        
+        # Add journal entries
+        if self.context.journal:
+            content += "\n## JOURNAL ENTRIES\n"
+            for entry in self.context.journal:
+                content += f"* {entry}\n"
+        
+        return f"""EXPORT READY
+
+Copy this markdown:
+
+```markdown
+{content}
+```
+
+Save as: {filename}
+"""
     
     # === COACH PHASE HANDLERS ===
     
@@ -1091,6 +1198,12 @@ Just say what you want to do naturally:
 === AFTER HOURS ===
 "review my day" - Session summary
 "show performance" - Detailed statistics
+"daily report" - Complete trading report
+"export day" - Export to markdown
+
+=== TRACKING OTHERS ===
+"log mod DP bought AAPL 225" - Track moderator trades
+"log mod Kira scaled NVDA 140c" - Track scaling
 
 === ANYTIME ===
 "coach me" - Behavioral feedback
