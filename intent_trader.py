@@ -260,20 +260,52 @@ class IntentTrader:
         self.context.dp_analysis = analysis
         self.context.phase = "PLAN"
         
-        # Format response
+        # Format response with conviction scores
         response = "=== DP ANALYSIS ===\n"
         response += f"📊 Bias: {analysis['bias']}\n"
         response += f"📍 Key Levels: {', '.join(map(str, levels[:5]))}\n"
         
-        if analysis["ideas"]:
-            response += "\n🎯 Trade Ideas:\n"
-            for idea in analysis["ideas"]:
-                response += f"  • {idea}\n"
+        if self.context.ideas:
+            response += "\n🎯 CONVICTION SCORING:\n"
+            
+            # Group by conviction level
+            exceptional = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+                          if i.source == "dp" and i.score.score >= 0.90]
+            high = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+                   if i.source == "dp" and 0.70 <= i.score.score < 0.90]
+            medium = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+                     if i.source == "dp" and 0.50 <= i.score.score < 0.70]
+            low = [(i.ticker, i.score.score, i.entry) for i in self.context.ideas 
+                  if i.source == "dp" and i.score.score < 0.50]
+            
+            if exceptional:
+                response += "\n💎 EXCEPTIONAL (0.90+) - Focus Trades:\n"
+                for ticker, score, entry in exceptional:
+                    entry_str = f" @ {entry}" if entry else ""
+                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
+                    
+            if high:
+                response += "\n✅ HIGH (0.70-0.89) - Full Size:\n"
+                for ticker, score, entry in high:
+                    entry_str = f" @ {entry}" if entry else ""
+                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
+                    
+            if medium:
+                response += "\n📊 MEDIUM (0.50-0.69) - Half Size:\n"
+                for ticker, score, entry in medium:
+                    entry_str = f" @ {entry}" if entry else ""
+                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
+                    
+            if low:
+                response += "\n⚠️ LOW (<0.50) - Avoid/Quarter:\n"
+                for ticker, score, entry in low:
+                    entry_str = f" @ {entry}" if entry else ""
+                    response += f"  • {ticker}: {score:.2f}{entry_str}\n"
                 
         if analysis["conviction_phrases"]:
-            response += "\n💪 High Conviction:\n"
+            response += "\n💪 Key Phrases Detected:\n"
             for phrase in analysis["conviction_phrases"][:3]:
-                response += f"  • {phrase}\n"
+                response += f"  • \"{phrase}\"\n"
                 
         response += "\n→ Next: Analyze Mancini for confluence"
         
@@ -297,6 +329,7 @@ class IntentTrader:
             analysis["mode"] = "Mode2"
             
         # Find setups
+        found_setups = []
         for pattern, (score, label) in MANCINI_SETUP_MAP.items():
             if pattern in msg_lower:
                 # ES is the primary instrument for Mancini
@@ -323,21 +356,62 @@ class IntentTrader:
                     
                     self.context.ideas.extend([idea, spx_idea])
                     analysis["setups"].append(f"{label} @ ES {es_level}")
+                    found_setups.append((label, score, es_level))
+                else:
+                    self.context.ideas.append(idea)
+                    analysis["setups"].append(f"{label} (no level)")
+                    found_setups.append((label, score, None))
                     
         # Store analysis
         analysis["levels"] = levels
         self.context.mancini_analysis = analysis
         self.context.mode = analysis["mode"]
         
-        # Format response
+        # Format response with scoring
         response = "=== MANCINI ANALYSIS ===\n"
         response += f"📊 Market Mode: {analysis['mode']}\n"
         response += f"📍 ES Levels: {', '.join(map(str, levels[:4]))}\n"
         
-        if analysis["setups"]:
-            response += "\n📈 Setups Identified:\n"
-            for setup in analysis["setups"]:
-                response += f"  • {setup}\n"
+        if found_setups:
+            response += "\n📈 TECHNICAL SCORING:\n"
+            
+            # Group by score ranges
+            primary = [(label, score, level) for label, score, level in found_setups if score >= 0.85]
+            strong = [(label, score, level) for label, score, level in found_setups if 0.70 <= score < 0.85]
+            moderate = [(label, score, level) for label, score, level in found_setups if 0.50 <= score < 0.70]
+            weak = [(label, score, level) for label, score, level in found_setups if score < 0.50]
+            
+            if primary:
+                response += "\n🎯 PRIMARY EDGE (0.85+) - Full Size:\n"
+                for label, score, level in primary:
+                    level_str = f" @ ES {level}" if level else ""
+                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    if level:
+                        response += f"    → SPX equivalent: {level/10:.0f}\n"
+                        
+            if strong:
+                response += "\n✅ STRONG (0.70-0.84) - Full Size:\n"
+                for label, score, level in strong:
+                    level_str = f" @ ES {level}" if level else ""
+                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    
+            if moderate:
+                response += "\n📊 MODERATE (0.50-0.69) - Half Size:\n"
+                for label, score, level in moderate:
+                    level_str = f" @ ES {level}" if level else ""
+                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    
+            if weak:
+                response += "\n⚠️ WEAK (<0.50) - Avoid/Quarter:\n"
+                for label, score, level in weak:
+                    level_str = f" @ ES {level}" if level else ""
+                    response += f"  • {label}: {score:.2f}{level_str}\n"
+                    
+        # Mode-specific guidance
+        if self.context.mode == "Mode2":
+            response += "\n⚠️ Mode 2 Market: Expect chop, reduce size, tighter stops"
+        else:
+            response += "\n📈 Mode 1 Market: Trend day potential, can hold runners"
                 
         response += "\n→ Next: Create unified plan"
         
