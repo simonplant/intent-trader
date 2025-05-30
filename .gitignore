@@ -44,7 +44,7 @@ coverage.xml
 data/db/*.db
 
 # Logs
-logs/
+# logs/
 *.log
 
 # IDE files
