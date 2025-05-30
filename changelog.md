@@ -5,6 +5,30 @@ All notable changes to Intent Trader will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Chart analysis integration with `chart` command for visual pattern recognition
+- Color schema detection for technical indicators (8/21/50/100/200 MA, VWAP, etc.)
+- Pattern scoring: Failed Breakdowns, Bull/Bear Flags, Triangles (0.50-0.85 scores)
+- Traffic light momentum system based on 8/21 MA relationship
+- Daily reporting with `daily report` command showing comprehensive session summary
+- Moderator activity tracking with `log mod [NAME] [ACTION] [TICKER] [PRICE]`
+- `export day` command creates markdown-formatted daily logs
+- Plan alignment scoring to track execution discipline
+- `update` command now works globally for quick price updates across all positions
+
+### Changed
+- Enhanced `handle_chart` to auto-create trade ideas from detected patterns
+- Improved `handle_update` to accept multiple ticker-price pairs in one command
+- Behavioral coaching now includes pattern-specific feedback
+- Help system expanded with new chart and reporting commands
+
+### Fixed
+- Symbol extraction now properly excludes more non-ticker words (TERM, OUTLOOK, etc.)
+- Price level extraction handles comma-separated numbers correctly
+- Chart pattern detection properly handles multiple pattern keywords
+
 ## [1.0.0] - 2024-05-28
 
 ### Added
@@ -39,11 +63,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Future Releases
 
 ### [1.1.0] - Planned
-- Market data integration
-- Options Greeks tracking
-- Daily report generation
+- Dynamic trade plan with live status tracking
+- Enhanced trade idea model with lifecycle management
+- Plan-based execution with trigger detection
+- Unified trade plan table view
 
 ### [1.2.0] - Planned
+- Market data integration
+- Options Greeks tracking
 - Portfolio correlation analysis
 - Advanced risk management
 - Kelly criterion position sizing
