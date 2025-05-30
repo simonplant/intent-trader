@@ -208,6 +208,7 @@ MANCINI_SETUP_MAP = {
     "failed breakdown": (0.85, "FB"),
     "fb": (0.85, "FB"),
     "failed break": (0.80, "FB"),
+    "failed breakout": (0.75, "FBO"),
     "level reclaim": (0.70, "Reclaim"),
     "reclaimed": (0.68, "Reclaim"),
     "support test": (0.55, "Support"),
