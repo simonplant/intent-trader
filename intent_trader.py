@@ -65,6 +65,7 @@ import json
 from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Optional, Tuple, Any
+from enum import Enum
 
 # === DATA MODELS ===
 
@@ -76,6 +77,16 @@ class ConvictionScore:
     label: str    # "Exceptional", "High", "FB", etc.
     
 @dataclass
+class TradeStatus(Enum):
+    WAITING = "waiting"
+    TRIGGERED = "triggered"
+    PARTIAL = "partial"
+    CLOSED = "closed"
+    STOPPED = "stopped"
+    INVALIDATED = "invalidated"
+    MISSED = "missed"
+
+@dataclass
 class TradeIdea:
     """A single trade idea with source-specific scoring."""
     ticker: str
@@ -83,10 +94,42 @@ class TradeIdea:
     score: ConvictionScore
     entry: Optional[float] = None
     stop: Optional[float] = None
-    target: Optional[float] = None
+    target1: Optional[float] = None
+    target2: Optional[float] = None
     size: Optional[str] = None
     notes: Optional[str] = None
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
+    rank: int = 0
+    type: str = "long"
+    _status: TradeStatus = field(default=None, repr=False)
+    triggered_at: Optional[float] = None
+    current_price: Optional[float] = None
+
+    @property
+    def status(self) -> TradeStatus:
+        return self._status if self._status is not None else TradeStatus.WAITING
+
+    @status.setter
+    def status(self, value: TradeStatus):
+        self._status = value
+
+    @property
+    def risk_per_share(self) -> float:
+        if self.entry and self.stop:
+            return abs(self.entry - self.stop)
+        return 0
+
+    @property
+    def profit_potential(self) -> float:
+        if self.entry and self.target2:
+            return abs(self.target2 - self.entry)
+        return 0
+
+    @property
+    def risk_reward(self) -> float:
+        if self.risk_per_share > 0:
+            return self.profit_potential / self.risk_per_share
+        return 0
 
 @dataclass
 class Position:
@@ -252,6 +295,14 @@ What's your first move?
             "see": self.handle_chart,
             "mean": self.handle_chart,
             "update": self.handle_update,  # <-- Always available
+            "show plan": self.handle_show_plan,
+            "plan table": self.handle_show_plan,
+            "update prices": self.handle_update_prices,
+            "waiting": self.handle_show_plan,
+            "active": self.handle_show_plan,
+            "done": self.handle_show_plan,
+            "execute plan": self.handle_execute_from_plan,
+            "invalidate": self.handle_invalidate,
         }
     
     def process(self, message: str) -> str:
@@ -756,7 +807,8 @@ What's your first move?
             response += "* Flexible management\n"
             response += "* Adjust on sentiment\n"
             
-        return response
+        result = super().handle_execute(message) if hasattr(super(), 'handle_execute') else "Executed trade."
+        return result + "\n\n" + self.handle_show_plan("")
     
     def handle_size_position(self, message: str) -> str:
         """Calculate position size based on source rules."""
@@ -1006,6 +1058,72 @@ What's your first move?
             
         return response
     
+    def handle_invalidate(self, message: str) -> str:
+        symbols = self._extract_symbols(message)
+        if not symbols:
+            return "Specify ticker: 'invalidate AAPL broke support'"
+        ticker = symbols[0]
+        reason = " ".join(message.split()[2:]) if len(message.split()) > 2 else "manual"
+        invalidated = []
+        for idea in self.context.ideas:
+            if idea.ticker == ticker and idea.status == TradeStatus.WAITING:
+                idea.status = TradeStatus.INVALIDATED
+                invalidated.append(idea)
+        if invalidated:
+            response = f"Invalidated {ticker}: {reason}\nRemoved {len(invalidated)} setup(s) from active plan"
+        else:
+            response = f"No waiting setups for {ticker} to invalidate"
+        response += "\n\n" + self.handle_show_plan("")
+        return response
+
+    def handle_execute_from_plan(self, message: str) -> str:
+        parts = message.split()
+        if len(parts) < 3:
+            return "Format: execute plan AAPL"
+        ticker = parts[2].upper()
+        idea = next((i for i in self.context.ideas if i.ticker == ticker), None)
+        if not idea:
+            return f"❌ {ticker} not in trade plan\n\n" + self.handle_show_plan("")
+        if idea.status != TradeStatus.WAITING:
+            return f"❌ {ticker} status is {idea.status.value}, not waiting\n\n" + self.handle_show_plan("")
+        if not idea.current_price:
+            return f"❌ No current price for {ticker}. Run 'update prices' first\n\n" + self.handle_show_plan("")
+        if idea.type == "long" and idea.current_price > idea.entry * 1.01:
+            return f"❌ {ticker} above entry ${idea.entry:.2f} (current: ${idea.current_price:.2f})\n\n" + self.handle_show_plan("")
+        elif idea.type == "short" and idea.current_price < idea.entry * 0.99:
+            return f"❌ {ticker} below entry ${idea.entry:.2f} (current: ${idea.current_price:.2f})\n\n" + self.handle_show_plan("")
+        if idea.score.score >= 0.90:
+            qty = 100
+        elif idea.score.score >= 0.70:
+            qty = 100
+        elif idea.score.score >= 0.50:
+            qty = 50
+        else:
+            qty = 25
+        position = Position(
+            ticker=ticker,
+            source=idea.source,
+            side=idea.type,
+            qty=qty,
+            entry=idea.current_price,
+            current=idea.current_price,
+            stop=idea.stop
+        )
+        self.context.positions.append(position)
+        idea.status = TradeStatus.TRIGGERED
+        idea.triggered_at = idea.current_price
+        self.context.phase = "MANAGE"
+        response = f"TRIGGERED {idea.ticker} {idea.type.upper()} {qty} @ ${idea.current_price:.2f}\n"
+        response += f"Source: {idea.source.upper()} ({idea.score.label})\n"
+        response += f"Stop: ${idea.stop:.2f} | T1: ${idea.target1:.2f} | T2: ${idea.target2:.2f}\n"
+        response += f"Risk: ${idea.risk_per_share:.2f}/share | R:R: {idea.risk_reward:.1f}:1\n"
+        if idea.source == "mancini":
+            response += "\n📋 Mancini Protocol:\n• Lock 75% at T1\n• Trail runner to T2\n"
+        else:
+            response += "\n📋 DP Management:\n• Flexible based on action\n• Consider sentiment shifts\n"
+        response += "\n" + self.handle_show_plan("")
+        return response
+
     # === REVIEW PHASE HANDLERS ===
     
     def handle_review(self, message: str) -> str:
@@ -1234,7 +1352,6 @@ Save as: {filename}
     # === UTILITY HANDLERS ===
     
     def handle_help(self, message: str) -> str:
-        """Show help."""
         return """
 INTENT TRADER - Natural Language Trading
 
@@ -1242,55 +1359,22 @@ INTENT TRADER - Natural Language Trading
 Just say what you want to do naturally:
 "analyze dp" - I'll analyze DP's morning call
 "buy AAPL" - I'll buy 100 shares of AAPL
-"show positions" - I'll show your current positions
+"show plan" - See your live trade plan table
+"update prices AAPL 225 TSLA 420" - Update prices for all tickers
+"waiting" - Show only waiting trades
+"active" - Show only active trades
+"done" - Show closed/invalidated trades
+"execute plan AAPL" - Execute a trade from the plan
+"invalidate AAPL" - Invalidate a setup
 
-=== MORNING PLANNING ===
-"analyze dp [paste morning call]" - Extract DP trade ideas
-"analyze mancini [paste newsletter]" - Extract Mancini setups
-"what's the market mode?" - Check current mode
-"create my trading plan" - Build today's plan
-
-=== PRE-MARKET FOCUS ===
-"show me focus trades" - See all high conviction
-"what are the dp focus trades?" - DP only
-"show mancini setups" - Mancini only
-"check source for SPX" - Verify ticker source
-
-=== TRADING HOURS ===
-"buy 100 AAPL at 225.50" - Specific entry
-"buy AAPL" - Quick 100 share entry
-"quick add AAPL" - Fast position add
-"what size for AAPL?" - Position sizing help
-
-=== MANAGING POSITIONS ===
-"show my positions" - Current P&L status
-"update AAPL to 227.50" - Update prices
-"lock 75% on ES" - Mancini profit rule
-"move stop on AAPL to 224" - Adjust stops
-"exit AAPL" or "exit all" - Close positions
-"note AAPL holding overnight" - Add notes
-
-=== AFTER HOURS ===
-"review my day" - Session summary
-"show performance" - Detailed statistics
-"daily report" - Complete trading report
-"export day" - Export to markdown
-
-=== TRACKING OTHERS ===
-"log mod DP bought AAPL 225" - Track moderator trades
-"log mod Kira scaled NVDA 140c" - Track scaling
-
-=== ANYTIME ===
-"coach me" - Behavioral feedback
-"behavioral check" - Pattern detection
-"save session" - Export to JSON
-"journal rough morning" - Add notes
-"help" - This message
-"reset" - Start fresh
-"show context" - Current state
-"chart": Analyze chart visuals, patterns, and levels from natural language
-
-Currently in """ + self.context.phase + """ phase"""
+=== WORKFLOW ===
+1. Analyze and create your plan
+2. Use 'show plan' to see all ideas and statuses
+3. Update prices as the market moves
+4. When a trade hits entry, confirm with 'execute plan TICKER'
+5. Manage and exit as needed
+6. Always see the latest plan after actions
+"""
     
     def handle_save(self, message: str) -> str:
         """Save context to JSON string for copy/paste."""
@@ -1690,6 +1774,81 @@ Journal Entries: {len(self.context.journal)}
             self.context.journal.append(f"[{datetime.now().isoformat()}] Chart: {journal_ticker} {momentum} {detected_pattern or 'no pattern'}")
         
         return response
+
+    def handle_show_plan(self, message: str) -> str:
+        """Show the current trading plan."""
+        response = "=== CURRENT TRADING PLAN ===\n"
+        response += f"Phase: {self.context.phase}\n"
+        response += f"Mode: {self.context.mode}\n\n"
+        
+        # DP Section
+        dp_ideas = [i for i in self.context.ideas if i.source == "dp"]
+        if dp_ideas:
+            response += "DP/INNER CIRCLE FOCUS:\n"
+            focus_trades = [i for i in dp_ideas if i.score.score >= 0.90]
+            high_conviction = [i for i in dp_ideas if 0.70 <= i.score.score < 0.90]
+            
+            if focus_trades:
+                response += "Focus Trades (0.90+):\n"
+                for idea in focus_trades[:3]:
+                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
+                    
+            if high_conviction:
+                response += "High Conviction (0.70-0.89):\n"
+                for idea in high_conviction[:3]:
+                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
+        
+        # Mancini Section
+        mancini_ideas = [i for i in self.context.ideas if i.source == "mancini"]
+        if mancini_ideas:
+            response += "\nMANCINI BLUEPRINT FOCUS:\n"
+            fb_setups = [i for i in mancini_ideas if i.score.label == "FB"]
+            other_setups = [i for i in mancini_ideas if i.score.label != "FB"]
+            
+            if fb_setups:
+                response += "Failed Breakdowns (Primary Edge):\n"
+                for idea in fb_setups:
+                    response += f"  * {idea.ticker}: {idea.score.label}\n"
+                    if idea.notes:
+                        response += f"    -> {idea.notes}\n"
+                        
+            if other_setups:
+                response += "Other Setups:\n"
+                for idea in other_setups[:2]:
+                    response += f"  * {idea.ticker}: {idea.score.label}\n"
+        
+        # Rules reminder
+        response += "\nEXECUTION RULES:\n"
+        response += "* DP trades: Size by conviction score\n"
+        response += "* Mancini trades: Wait for acceptance confirmation\n"
+        response += "* Never mix scoring methodologies\n"
+        response += "* Verify source before ANY SPX trade\n"
+        
+        return response
+
+    def handle_update_prices(self, message: str) -> str:
+        """Update prices for multiple tickers."""
+        parts = message.split()[1:]  # Skip 'update prices'
+        
+        if not parts:
+            return "Usage: update prices AAPL 227.50 TSLA 185.20"
+            
+        updated = []
+        for ticker in parts:
+            try:
+                price = float(ticker)
+                # Find position
+                for pos in self.context.positions:
+                    if pos.ticker == ticker:
+                        pos.current = price
+                        updated.append(f"{ticker} → {price}")
+                        break
+            except ValueError:
+                return f"X Invalid price format for {ticker}"
+        
+        if updated:
+            return "Updated: " + ", ".join(updated)
+        return "X No positions updated"
 
 
 # === MAIN EXECUTION ===
