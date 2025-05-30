@@ -341,20 +341,18 @@ What's your first move?
     # === PLAN PHASE HANDLERS ===
     
     def handle_analyze_dp(self, message: str) -> str:
-        """Analyze DP morning call with conviction scoring."""
+        """Analyze DP morning call with enhanced conviction scoring."""
         lines = message.split('\n')
         analysis = {
             "bias": "NEUTRAL",
             "ideas": [],
             "levels": [],
-            "conviction_phrases": []
+            "conviction_phrases": [],
+            "energy_summary": {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
         }
-        
-        # Extract all content
         all_text = message.lower()
         levels = self._extract_levels(message)
         symbols = self._extract_symbols(message)
-        
         # Deduplicate symbols
         seen_symbols = set()
         unique_symbols = []
@@ -362,80 +360,71 @@ What's your first move?
             if symbol not in seen_symbols:
                 seen_symbols.add(symbol)
                 unique_symbols.append(symbol)
-        
         # Determine bias
         if "bullish" in all_text and any(w in all_text for w in ["above", "over", "break"]):
             analysis["bias"] = "BULLISH"
         elif "bearish" in all_text and any(w in all_text for w in ["below", "under", "fail"]):
             analysis["bias"] = "BEARISH"
-            
-        # Score each symbol mentioned
+        # Enhanced scoring for each line
+        dp_analyzer = DPConvictionAnalyzer()
         found_count = 0
-        for symbol in unique_symbols:
-            # Find context around symbol
-            for line in lines:
-                if symbol in line.upper():
-                    line_lower = line.lower()
-                    
-                    # Check conviction phrases
-                    for phrase, score, label in DP_CONVICTION_MAP:
-                        if phrase in line_lower:
-                            idea = TradeIdea(
-                                ticker=symbol,
-                                source="dp",
-                                score=ConvictionScore(score, "dp", label)
-                            )
-                            
-                            # Extract price if mentioned
-                            prices = self._extract_levels(line)
-                            if prices:
-                                idea.entry = prices[0]
-                                
-                            self.context.ideas.append(idea)
-                            analysis["ideas"].append(f"{symbol}: {label} ({score})")
-                            found_count += 1
-                            
-                            if score >= 0.90:
-                                analysis["conviction_phrases"].append(line.strip())
-                            break
-        
+        for line in lines:
+            symbols_in_line = self._extract_symbols(line)
+            for symbol in symbols_in_line:
+                result = dp_analyzer.analyze_line(line, symbol)
+                if result['score'] is not None:
+                    idea = TradeIdea(
+                        ticker=symbol,
+                        source="dp",
+                        score=ConvictionScore(result['score'], "dp", result['label']),
+                        notes=f"Energy: {result['energy']} | Confidence: {result['confidence']:.0%}"
+                    )
+                    # Extract price if mentioned
+                    prices = self._extract_levels(line)
+                    if prices:
+                        idea.entry = prices[0]
+                    self.context.ideas.append(idea)
+                    analysis["ideas"].append(
+                        f"{symbol}: {result['label']} ({result['score']:.2f}) - {result['energy']} energy"
+                    )
+                    analysis["energy_summary"][result['energy']] += 1
+                    if result['score'] >= 0.90:
+                        analysis["conviction_phrases"].append(line.strip())
+                    found_count += 1
         # Store analysis
         analysis["levels"] = levels
         self.context.dp_analysis = analysis
         self.context.phase = "PLAN"
-        
         # Format response
         response = "=== DP ANALYSIS ===\n"
         response += f"Bias: {analysis['bias']}\n"
         response += f"Key Levels: {', '.join(map(str, levels[:5]))}\n"
         response += f"\nFound {found_count} trade ideas from {len(unique_symbols)} tickers\n"
-        
+        response += f"Energy Summary: HIGH={analysis['energy_summary']['HIGH']}, MEDIUM={analysis['energy_summary']['MEDIUM']}, LOW={analysis['energy_summary']['LOW']}\n"
         if self.context.ideas:
-            response += "\nCONVICTION SCORING:\n"
-            
+            response += "\nCONVICTION SCORING (with energy/confidence):\n"
             # Group by conviction level
             exceptional = [i for i in self.context.ideas if i.source == "dp" and i.score.score >= 0.90]
             high = [i for i in self.context.ideas if i.source == "dp" and 0.70 <= i.score.score < 0.90]
             medium = [i for i in self.context.ideas if i.source == "dp" and 0.50 <= i.score.score < 0.70]
-            
             if exceptional:
                 response += "\nEXCEPTIONAL (0.90+) - Focus Trades:\n"
                 for i in exceptional:
                     entry_str = f" @ {i.entry}" if i.entry else ""
-                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
-                    
+                    energy = i.notes if i.notes else ""
+                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str} | {energy}\n"
             if high:
                 response += "\nHIGH (0.70-0.89) - Full Size:\n"
                 for i in high:
                     entry_str = f" @ {i.entry}" if i.entry else ""
-                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
-                    
+                    energy = i.notes if i.notes else ""
+                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str} | {energy}\n"
             if medium:
                 response += "\nMEDIUM (0.50-0.69) - Half Size:\n"
                 for i in medium:
                     entry_str = f" @ {i.entry}" if i.entry else ""
-                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str}\n"
-                
+                    energy = i.notes if i.notes else ""
+                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str} | {energy}\n"
         response += "\n-> Next: 'analyze mancini' or 'create plan'"
         return response
     
@@ -1882,3 +1871,65 @@ if __name__ == "__main__":
 |  - demo() to see examples                      |
 +------------------------------------------------+
         """)
+
+# === HELPER CLASSES ===
+
+class DPConvictionAnalyzer:
+    """Helper for context-aware DP conviction scoring"""
+    def __init__(self):
+        self.amplifiers = ['really', 'absolutely', 'definitely', 'very', 'extremely', 'love', 'focus', 'aggressive']
+        self.hedgers = ['maybe', 'might', 'possibly', 'perhaps', 'decent', 'kinda', 'sorta']
+        self.negators = ['not', 'no', "don't", "doesn't", "isn't", "won't", "can't"]
+    def analyze_line(self, line: str, ticker: str) -> dict:
+        """Analyze a line for conviction with context awareness"""
+        line_lower = line.lower()
+        # Default result
+        result = {
+            'score': None,
+            'label': None,
+            'energy': 'LOW',
+            'confidence': 0.5,
+            'matched_phrase': None
+        }
+        # Check each conviction phrase
+        for phrase, base_score, base_label in DP_CONVICTION_MAP:
+            if phrase in line_lower:
+                score = base_score
+                label = base_label
+                # Check for negation BEFORE the phrase
+                before_phrase = line_lower.split(phrase)[0]
+                words_before = before_phrase.split()[-3:]  # Last 3 words
+                if any(neg in words_before for neg in self.negators):
+                    # Special case: "no brainer" is positive
+                    if phrase != "no brainer long":
+                        score = 0.15
+                        label = "Avoid"
+                # Count modifiers
+                amp_count = sum(1 for amp in self.amplifiers if amp in line_lower)
+                hedge_count = sum(1 for hedge in self.hedgers if hedge in line_lower)
+                # Apply amplifiers
+                if amp_count > 0:
+                    score = min(score * (1 + 0.05 * amp_count), 0.95)
+                # Apply hedgers  
+                if hedge_count > 0:
+                    score = max(score * (1 - 0.05 * hedge_count), 0.25)
+                # Determine energy
+                if '!' in line or amp_count >= 2:
+                    energy = 'HIGH'
+                elif score >= 0.85 or amp_count > 0:
+                    energy = 'MEDIUM'
+                else:
+                    energy = 'LOW'
+                # Confidence based on match quality
+                confidence = 0.9 if phrase in line_lower else 0.7
+                if amp_count > 0 or hedge_count > 0:
+                    confidence = min(confidence + 0.1, 1.0)
+                result = {
+                    'score': score,
+                    'label': label,
+                    'energy': energy,
+                    'confidence': confidence,
+                    'matched_phrase': phrase
+                }
+                break
+        return result
