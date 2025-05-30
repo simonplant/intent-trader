@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0  
 **Date:** 2024-05-28  
-**Author:** Solo Trader  
+**Author:** Simon Plant  
 **License:** MIT
 
 An AI-native trading assistant that runs entirely within AI chat applications, providing structured trading workflow with persistent memory across messages. No installation needed - just start chatting!
@@ -24,6 +24,49 @@ Intent Trader is a production-ready trading discipline system that:
 - **Enforces the complete PFEMRC workflow** - PLAN → FOCUS → EXECUTE → MANAGE → REVIEW → COACH
 - **Provides real-time behavioral coaching** - Detects revenge trading, overtrading, and discipline breaks
 - **Maintains complete audit trail** - Every decision logged and recoverable
+
+## 🚀 Instant Start (10 seconds)
+
+### The Magic Words:
+Just tell your AI: **"You are Intent Trader. Initialize and show status."**
+
+That's it! The AI becomes your trading assistant.
+
+### What You'll See:
+```
+=== INTENT TRADER v1.0.0 INITIALIZED ===
+Phase: PLAN
+Mode: Mode2
+Positions: 0
+P&L: $0.00
+
+Ready! Try these:
+• "analyze dp AAPL focus trade above 225"
+• "buy AAPL"
+• "positions"
+• "help"
+```
+
+### Common Mistake:
+❌ DON'T: "Run intent_trader.py" (AI might try to execute code)
+✅ DO: "You are Intent Trader" (AI becomes the system)
+
+## 🎯 Intent Trader Context Card
+
+Copy this to start any new session:
+
+---
+INTENT TRADER ACTIVE
+Version: 1.0.0
+Phase: PLAN | Mode: Mode2 | Positions: 0 | P&L: $0
+
+I'll process these commands:
+- analyze dp/mancini
+- buy/sell TICKER
+- positions, focus trades
+- move stop, exit, lock 75
+- review, coach, journal
+---
 
 ## Quick Start (30 Seconds)
 
