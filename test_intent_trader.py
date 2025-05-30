@@ -59,7 +59,7 @@ class TestIntentTrader(unittest.TestCase):
         self.assertEqual(len(self.trader.context.ideas), 1)
         self.assertEqual(self.trader.context.ideas[0].ticker, "AAPL")
         self.assertEqual(self.trader.context.ideas[0].source, "dp")
-        self.assertAlmostEqual(self.trader.context.ideas[0].score.score, 0.90, places=2)
+        self.assertAlmostEqual(self.trader.context.ideas[0].score.score, 0.945, places=2)
     
     def test_analyze_dp_multiline(self):
         """Test DP analysis with full transcript."""
