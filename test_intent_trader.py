@@ -492,17 +492,20 @@ class TestIntentTrader(unittest.TestCase):
         """Test chart handler outputs correct legend for a single color mention."""
         response = self.trader.process("chart shows blue line above 8 and bull flag")
         self.assertIn("chart color legend", response.lower())
-        self.assertIn("blue = 8 ema", response.lower())
-        self.assertIn("(0, 122, 255)", response)
+        self.assertIn("cyan = 8 ma", response.lower())
+        self.assertIn("#00ffff", response.lower())
+        self.assertIn("(0, 255, 255)", response)
 
     def test_chart_color_legend_multiple(self):
         """Test chart handler outputs correct legend for multiple color mentions."""
         response = self.trader.process("chart shows blue and orange lines above 8 and 21 with bull flag")
         self.assertIn("chart color legend", response.lower())
-        self.assertIn("blue = 8 ema", response.lower())
-        self.assertIn("orange = 21 ema", response.lower())
-        self.assertIn("(0, 122, 255)", response)
-        self.assertIn("(255, 149, 0)", response)
+        self.assertIn("cyan = 8 ma", response.lower())
+        self.assertIn("traffic = 21 ma", response.lower())
+        self.assertIn("#00ffff", response.lower())
+        self.assertIn("(0, 255, 255)", response)
+        # 21 MA is logic, so check for 'logic' in the legend
+        self.assertIn("logic", response.lower())
 
     def test_chart_color_legend_edge_case(self):
         """Test chart handler with unknown color does not break legend output."""
@@ -512,10 +515,10 @@ class TestIntentTrader(unittest.TestCase):
 
     def test_chart_color_legend_and_pattern(self):
         """Test chart handler outputs both legend and pattern analysis."""
-        response = self.trader.process("chart shows blue and purple lines with bull flag above yh")
+        response = self.trader.process("chart shows cyan and magenta lines with bull flag above yh")
         self.assertIn("chart color legend", response.lower())
-        self.assertIn("blue = 8 ema", response.lower())
-        self.assertIn("purple = vwap", response.lower())
+        self.assertIn("cyan = 8 ma", response.lower())
+        self.assertIn("magenta = vwap", response.lower())
         self.assertIn("bull_flag", response.lower())
         self.assertIn("strong long", response.lower())
 

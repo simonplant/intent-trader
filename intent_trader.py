@@ -1621,8 +1621,10 @@ Journal Entries: {len(self.context.journal)}
         if found_colors:
             response += "Chart Color Legend:\n"
             for color in sorted(found_colors):
-                label, rgb = COLOR_SCHEMA[color]
-                response += f"- {color.capitalize()} = {label} {rgb}\n"
+                label, hex_code, rgb = COLOR_SCHEMA[color]
+                rgb_str = f"{rgb}" if rgb else "logic"
+                hex_str = hex_code if hex_code.startswith('#') else hex_code
+                response += f"- {color.capitalize()} = {label} {hex_str} {rgb_str}\n"
             response += "\n"
         
         # Momentum first
@@ -1773,13 +1775,24 @@ if __name__ == "__main__":
         """)
 
 COLOR_SCHEMA = {
-    "blue":    ("8 EMA", (0, 122, 255)),
-    "orange":  ("21 EMA", (255, 149, 0)),
-    "red":     ("50 SMA", (255, 59, 48)),
-    "green":   ("200 SMA", (52, 199, 89)),
-    "purple":  ("VWAP", (175, 82, 222)),
-    "pink":    ("AVWAP", (255, 45, 185)),
-    "gray":    ("Keltner Channels", (142, 142, 147)),
-    "yellow":  ("Trend lines", (255, 204, 0)),
-    "teal":    ("Custom/other", (90, 200, 250)),
+    "cyan":      ("8 MA",      "#00FFFF", (0, 255, 255)),      # Cyan
+    "traffic":   ("21 MA",     "traffic_light", None),         # Special logic, see below
+    "blue":      ("50 MA",     "#0066FF", (0, 102, 255)),      # Blue
+    "orange":    ("100 MA",    "#FF7E00", (255, 126, 0)),      # Orange
+    "yellow":    ("200 MA",    "#FFF000", (255, 240, 0)),      # Yellow
+    "magenta":   ("VWAP",      "#FF66FF", (255, 102, 255)),    # Magenta
+    "purple":    ("AVWAP (YTD)", "#9370DB", (147, 112, 219)),  # Purple
+    "lightgray": ("Keltner Channels", "#B5B5B5", (181, 181, 181)), # Light Grey
+    "white":     ("Trend lines/levels", "#FFFFFF", (255, 255, 255)), # White
+    # Pivot points handled separately (see below)
 }
+
+# Traffic Light Momentum (21 MA):
+#   If price is above both 8 and 21 MA: Green (#00FF00, (0,255,0))
+#   Otherwise: Red or Yellow as appropriate
+#   Implement as logic, not static color.
+
+# Pivot Points:
+#   Resistance (R3 to R1): Red (#FF0000, (255,0,0))
+#   Pivot: White (#FFFFFF, (255,255,255))
+#   Support (S1 to S3): Green (#00FF00, (0,255,0))
