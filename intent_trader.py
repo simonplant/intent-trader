@@ -1579,6 +1579,18 @@ Journal Entries: {len(self.context.journal)}
             response += f": {ticker}"
         response += " ===\n\n"
         
+        # Color legend detection
+        found_colors = set()
+        for color in COLOR_SCHEMA:
+            if color in msg:
+                found_colors.add(color)
+        if found_colors:
+            response += "Chart Color Legend:\n"
+            for color in sorted(found_colors):
+                label, rgb = COLOR_SCHEMA[color]
+                response += f"- {color.capitalize()} = {label} {rgb}\n"
+            response += "\n"
+        
         # Momentum first
         response += f"Momentum: {momentum} LIGHT\n"
         
@@ -1715,3 +1727,15 @@ if __name__ == "__main__":
 |  - Request a Demo to see examples              |
 +------------------------------------------------+
         """)
+
+COLOR_SCHEMA = {
+    "blue":    ("8 EMA", (0, 122, 255)),
+    "orange":  ("21 EMA", (255, 149, 0)),
+    "red":     ("50 SMA", (255, 59, 48)),
+    "green":   ("200 SMA", (52, 199, 89)),
+    "purple":  ("VWAP", (175, 82, 222)),
+    "pink":    ("AVWAP", (255, 45, 185)),
+    "gray":    ("Keltner Channels", (142, 142, 147)),
+    "yellow":  ("Trend lines", (255, 204, 0)),
+    "teal":    ("Custom/other", (90, 200, 250)),
+}
