@@ -56,3 +56,5 @@ The Intent Trader MVP is 100% complete and production-ready. All 15 requirements
 - Process for how to get regular price updates into the app (e.g. hourly reminder)
 - Momentum trading rules bullish > 8 & 21 SMA on 2m
 - Clean DPs transcript - tickers, names, company names to tickers, frequent errors.
+-  today’s premarket news flow and “most active”/“biggest movers” lists found via financial news sites (Investing.com, Barrons, Yahoo, etc.) using a web lookup
+- 

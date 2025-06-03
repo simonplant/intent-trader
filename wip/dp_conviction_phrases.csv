@@ -1,0 +1,58 @@
+phrase,score,label
+focus trade,0.95,Exceptional
+get aggressive,0.93,Exceptional
+love this,0.90,Exceptional
+back up the truck,0.88,Exceptional
+focus today,0.92,Exceptional
+focus on,0.85,Exceptional
+favorite,0.90,Exceptional
+favorites,0.90,Exceptional
+main idea,0.88,Exceptional
+love it here,0.90,Exceptional
+must own,0.93,Exceptional
+can be a monster,0.88,Exceptional
+fill your bucket,0.88,Exceptional
+absolute best,0.95,Exceptional
+no brainer long,0.93,Exceptional
+big idea,0.88,Exceptional
+core idea,0.88,Exceptional
+A+ setup,0.90,Exceptional
+biggest alpha trade,0.93,Exceptional
+definitely want,0.80,High
+really like,0.75,High
+strong conviction,0.73,High
+i'm a fan,0.70,High
+definitely a buyer,0.68,High
+add to your position,0.75,High
+add to my exposure,0.75,High
+add back to the position,0.73,High
+buy with both hands,0.80,High
+buy on dips,0.73,High
+be a buyer of pullbacks,0.73,High
+playing from ahead,0.75,High
+really happy with it,0.70,High
+high conviction,0.75,High
+i'll continue to buy,0.65,Medium
+i'm a buyer,0.60,Medium
+decent setup,0.55,Medium
+worth owning,0.53,Medium
+like it,0.50,Medium
+would be a great buy,0.48,Medium
+medium conviction,0.55,Medium
+starter position,0.50,Medium
+if viable,0.40,Low
+worth watching,0.38,Low
+might work,0.35,Low
+on my radar,0.30,Low
+play it by ear,0.25,Low
+wait for better,0.20,Low
+trim profits,0.30,Low
+take some profits,0.28,Low
+not excited,0.15,Avoid
+avoid,0.10,Avoid
+stay away,0.05,Avoid
+no way,0.02,Avoid
+pass,0.15,Avoid
+sell rounds,0.10,Avoid
+take off risk,0.08,Avoid
+cut losses,0.05,Avoid
