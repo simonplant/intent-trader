@@ -586,8 +586,9 @@ What's your first move?
             return response
         
         # Create table format
-        response += "TICKER | SOURCE | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R\n"
-        response += "-" * 70 + "\n"
+        response += "```\n"
+        response += "| TICKER | SOURCE | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
+        response += "|--------|--------|-------|--------|-------|------|----|----|-----|\n"
         
         for idea in sorted(ideas_to_show, key=lambda x: (-x.score.score, x.ticker)):
             entry_str = f"{idea.entry:.2f}" if idea.entry else "---"
@@ -596,9 +597,9 @@ What's your first move?
             t2_str = f"{idea.target2:.2f}" if idea.target2 else "---"
             rr_str = f"{idea.risk_reward:.1f}:1" if idea.risk_reward > 0 else "---"
             
-            response += f"{idea.ticker:6} | {idea.source:6} | {idea.score.score:.2f} | "
-            response += f"{idea.status.value:11} | {entry_str:5} | {stop_str:5} | "
-            response += f"{t1_str:5} | {t2_str:5} | {rr_str}\n"
+            response += f"| {idea.ticker:<6} | {idea.source:<6} | {idea.score.score:.2f} | {idea.status.value:<10} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
+        
+        response += "```\n"
         
         # Add action hints
         response += "\nACTIONS:\n"
@@ -806,15 +807,17 @@ What's your first move?
         total_unrealized = 0
         
         # Table format
-        response += "TICKER | SOURCE | SIDE | QTY@PRICE | CURRENT | P&L | %\n"
-        response += "-" * 60 + "\n"
+        response += "```\n"
+        response += "| TICKER | SOURCE | SIDE | QTY@PRICE | CURRENT | P&L | % |\n"
+        response += "|--------|--------|------|-----------|---------|-----|-----|\n"
         
         for pos in self.context.positions:
-            response += f"{pos.ticker:6} | {pos.source:6} | {pos.side:4} | "
+            response += f"| {pos.ticker:<6} | {pos.source:<6} | {pos.side:<4} | "
             response += f"{pos.qty}@{pos.entry:.2f} | {pos.current:.2f} | "
-            response += f"${pos.pnl:+.2f} | {pos.pnl_pct:+.1f}%\n"
+            response += f"${pos.pnl:+.2f} | {pos.pnl_pct:+.1f}% |\n"
             total_unrealized += pos.pnl
         
+        response += "```\n"
         response += f"\nUnrealized: ${total_unrealized:+.2f}\n"
         response += f"Realized: ${self.context.realized_pnl:.2f}\n"
         response += f"Total P&L: ${self.context.realized_pnl + total_unrealized:+.2f}"
@@ -1568,23 +1571,31 @@ Ready to continue trading!"""
         
         if dp_ideas:
             response += "\nDP/INNER CIRCLE:\n"
+            response += "```\n"
+            response += "| CONVICTION | COUNT |\n"
+            response += "|------------|-------|\n"
             exceptional = len([i for i in dp_ideas if i.score.score >= 0.90])
             high = len([i for i in dp_ideas if 0.70 <= i.score.score < 0.90])
             medium = len([i for i in dp_ideas if 0.50 <= i.score.score < 0.70])
             
-            response += f"• Exceptional (0.90+): {exceptional}\n"
-            response += f"• High (0.70-0.89): {high}\n"
-            response += f"• Medium (0.50-0.69): {medium}\n"
+            response += f"| Exceptional (0.90+) | {exceptional} |\n"
+            response += f"| High (0.70-0.89) | {high} |\n"
+            response += f"| Medium (0.50-0.69) | {medium} |\n"
+            response += "```\n"
             
         if mancini_ideas:
             response += "\nMANCINI BLUEPRINT:\n"
+            response += "```\n"
+            response += "| SETUP TYPE | COUNT |\n"
+            response += "|------------|-------|\n"
             fb = len([i for i in mancini_ideas if i.score.label == "FB"])
             reclaim = len([i for i in mancini_ideas if i.score.label == "Reclaim"])
             support = len([i for i in mancini_ideas if i.score.label == "Support"])
             
-            response += f"• Failed Breakdowns: {fb}\n"
-            response += f"• Level Reclaims: {reclaim}\n"
-            response += f"• Support Tests: {support}\n"
+            response += f"| Failed Breakdowns | {fb} |\n"
+            response += f"| Level Reclaims | {reclaim} |\n"
+            response += f"| Support Tests | {support} |\n"
+            response += "```\n"
             
         response += f"\nMarket Mode: {self.context.mode}\n"
         response += f"Total P&L: ${self.context.realized_pnl:.2f}"
@@ -1607,15 +1618,24 @@ Ready to continue trading!"""
         # My Trades
         report += "\nMY EXECUTION:\n"
         all_positions = self.context.positions + self.context.closed_positions
-        for pos in all_positions:
-            planned = "✅" if any(i.ticker == pos.ticker for i in self.context.ideas) else "❌"
-            report += f"{planned} {pos.ticker}: ${pos.pnl:+.2f}\n"
+        if all_positions:
+            report += "```\n"
+            report += "| TICKER | PLANNED | P&L |\n"
+            report += "|--------|---------|-----|\n"
+            for pos in all_positions:
+                planned = "✅" if any(i.ticker == pos.ticker for i in self.context.ideas) else "❌"
+                report += f"| {pos.ticker:<6} | {planned:<7} | ${pos.pnl:+.2f} |\n"
+            report += "```\n"
         
         # Moderator Trades
         if self.context.moderator_trades:
             report += "\nMODERATOR ACTIVITY:\n"
+            report += "```\n"
+            report += "| MODERATOR | ACTION | TICKER | PRICE |\n"
+            report += "|-----------|--------|--------|-------|\n"
             for trade in self.context.moderator_trades[-10:]:  # Last 10 trades
-                report += f"• {trade['moderator']}: {trade['action']} {trade['ticker']} @ ${trade['price']:.2f}\n"
+                report += f"| {trade['moderator']:<9} | {trade['action']:<6} | {trade['ticker']:<6} | ${trade['price']:.2f} |\n"
+            report += "```\n"
         
         # Performance
         report += f"\nPERFORMANCE:\n"
