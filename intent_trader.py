@@ -407,24 +407,43 @@ What's your first move?
             exceptional = [i for i in self.context.ideas if i.source == "dp" and i.score.score >= 0.90]
             high = [i for i in self.context.ideas if i.source == "dp" and 0.70 <= i.score.score < 0.90]
             medium = [i for i in self.context.ideas if i.source == "dp" and 0.50 <= i.score.score < 0.70]
+            
             if exceptional:
                 response += "\nEXCEPTIONAL (0.90+) - Focus Trades:\n"
+                response += "| TICKER | SOURCE | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
+                response += "|--------|--------|-------|--------|-------|------|----|----|-----|\n"
                 for i in exceptional:
-                    entry_str = f" @ {i.entry}" if i.entry else ""
-                    energy = i.notes if i.notes else ""
-                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str} | {energy}\n"
+                    entry_str = f"{i.entry:.2f}" if i.entry else "---"
+                    stop_str = f"{i.stop:.2f}" if i.stop else "---"
+                    t1_str = f"{i.target1:.2f}" if i.target1 else "---"
+                    t2_str = f"{i.target2:.2f}" if i.target2 else "---"
+                    rr_str = f"{i.risk_reward:.1f}:1" if i.risk_reward > 0 else "---"
+                    response += f"| {i.ticker:<6} | {i.source:<6} | {i.score.score:.2f} | {i.status.value:<7} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
+                    
             if high:
                 response += "\nHIGH (0.70-0.89) - Full Size:\n"
+                response += "| TICKER | SOURCE | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
+                response += "|--------|--------|-------|--------|-------|------|----|----|-----|\n"
                 for i in high:
-                    entry_str = f" @ {i.entry}" if i.entry else ""
-                    energy = i.notes if i.notes else ""
-                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str} | {energy}\n"
+                    entry_str = f"{i.entry:.2f}" if i.entry else "---"
+                    stop_str = f"{i.stop:.2f}" if i.stop else "---"
+                    t1_str = f"{i.target1:.2f}" if i.target1 else "---"
+                    t2_str = f"{i.target2:.2f}" if i.target2 else "---"
+                    rr_str = f"{i.risk_reward:.1f}:1" if i.risk_reward > 0 else "---"
+                    response += f"| {i.ticker:<6} | {i.source:<6} | {i.score.score:.2f} | {i.status.value:<7} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
+                    
             if medium:
                 response += "\nMEDIUM (0.50-0.69) - Half Size:\n"
+                response += "| TICKER | SOURCE | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
+                response += "|--------|--------|-------|--------|-------|------|----|----|-----|\n"
                 for i in medium:
-                    entry_str = f" @ {i.entry}" if i.entry else ""
-                    energy = i.notes if i.notes else ""
-                    response += f"  * {i.ticker}: {i.score.score:.2f} = \"{i.score.label}\"{entry_str} | {energy}\n"
+                    entry_str = f"{i.entry:.2f}" if i.entry else "---"
+                    stop_str = f"{i.stop:.2f}" if i.stop else "---"
+                    t1_str = f"{i.target1:.2f}" if i.target1 else "---"
+                    t2_str = f"{i.target2:.2f}" if i.target2 else "---"
+                    rr_str = f"{i.risk_reward:.1f}:1" if i.risk_reward > 0 else "---"
+                    response += f"| {i.ticker:<6} | {i.source:<6} | {i.score.score:.2f} | {i.status.value:<7} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
+                    
         response += "\n-> Next: 'analyze mancini' or 'create plan'"
         return response
     
