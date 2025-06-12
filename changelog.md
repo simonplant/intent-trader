@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Price level extraction handles comma-separated numbers correctly
 - Chart pattern detection properly handles multiple pattern keywords
 
-## [1.0.0] - 2024-05-28
+## [0.4.2] - 2024-06-12
 
 ### Added
 - Initial production release
@@ -62,14 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Future Releases
 
-### [1.1.0] - Planned
+
+### [0.4.3] - Planned
+- Refactor into Jupyter Notebook?
 - Dynamic trade plan with live status tracking
 - Enhanced trade idea model with lifecycle management
 - Plan-based execution with trigger detection
-- Unified trade plan table view
-
-### [1.2.0] - Planned
-- Market data integration
+- Unified trade plan table view- Market data integration
 - Options Greeks tracking
 - Portfolio correlation analysis
 - Advanced risk management

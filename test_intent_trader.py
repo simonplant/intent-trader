@@ -1,12 +1,12 @@
 """
-Intent Trader - Test Suite (Updated for v1.1.0)
-Version: 1.1.0
+Intent Trader - Test Suite (Updated for v0.4.2)
+Version: 0.4.2
 Date: 2024-05-28
 Author: Simon Plant
 License: MIT
 
 Description:
-    Updated test suite for Intent Trader v1.1.0
+    Updated test suite for Intent Trader v0.4.2
     Tests the enhanced implementation with new formatting.
 
 Test Coverage:
@@ -35,7 +35,7 @@ from intent_trader import (
 
 
 class TestIntentTrader(unittest.TestCase):
-    """Complete test coverage for Intent Trader v1.1.0."""
+    """Complete test coverage for Intent Trader v0.4.2."""
     
     def setUp(self):
         """Create fresh trader for each test."""
@@ -652,7 +652,7 @@ class TestChartAnalysis(unittest.TestCase):
     
     def test_chart_color_legend(self):
         """Test chart color legend output."""
-        # Chart handler doesn't show color legend in v1.1.0
+        # Chart handler doesn't show color legend in v0.4.2
         response = self.trader.process("chart shows cyan and magenta lines with bull flag")
         
         # Check for pattern detection instead
@@ -662,7 +662,7 @@ class TestChartAnalysis(unittest.TestCase):
         """Test chart analysis updates journal."""
         self.trader.process("chart shows AAPL above 8 and above 21 with bull flag")
         
-        # Chart handler doesn't update journal in v1.1.0
+        # Chart handler doesn't update journal in v0.4.2
         # This is fine - not all handlers need to journal
         pass
 
