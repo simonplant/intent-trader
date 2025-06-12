@@ -107,85 +107,38 @@ def size_for_score(score: float, mode: str = "Mode2") -> int:
     return max(base, 1)
 
 def format_plan_table(ideas: List['TradeIdea']) -> str:
-    """Central helper for consistent table formatting across all plan views."""
+    """Return a unified markdown table for any collection of TradeIdea objects.
+    
+    Columns:
+      TICKER | SOURCE | TIER | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R
+    All ideas are shown with the same columns so DP and Mancini ideas can be
+    compared side-by-side.  Missing data are rendered as "---".
+    """
     if not ideas:
         return "No trade ideas match this filter.\n"
-    
-    # Check if we have Mancini ideas to show enhanced display
-    mancini_ideas = [i for i in ideas if i.source == "mancini"]
-    dp_ideas = [i for i in ideas if i.source == "dp"]
-    
-    response = ""
-    
-    # Enhanced Mancini display (tier-based grouping)
-    if mancini_ideas:
-        response += "=== MANCINI BLUEPRINT ===\n"
-        
-        # Group by tiers
-        tier0 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 0]
-        tier1 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 1] 
-        tier4 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 4]
-        
-        if tier0:
-            response += "\nTIER 0: FAILED BREAKDOWNS (Core Edge)\n"
-            response += "| LEVEL | ACCEPTANCE | FLUSH | CONFIDENCE | STATUS |\n"
-            response += "|-------|------------|-------|------------|--------|\n"
-            for i in tier0:
-                acceptance = getattr(i, "acceptance_pattern", "STANDARD")[:10]
-                flush = f"{i.flush_target:.0f}" if getattr(i, "flush_target", None) else "---"
-                confidence = getattr(i, "mancini_confidence", "MED")[:4]
-                response += f"| {i.entry:.0f} | {acceptance:<10} | {flush:<5} | {confidence:<10} | {i.status.value:<7} |\n"
-        
-        if tier1:
-            response += "\nTIER 1: LEVEL RECLAIMS\n"
-            response += "| LEVEL | TESTS | CONFIDENCE | STATUS |\n"
-            response += "|-------|-------|------------|--------|\n"
-            for i in tier1:
-                tests = f"{i.test_count}x" if getattr(i, "test_count", None) else "---"
-                confidence = getattr(i, "mancini_confidence", "MED")[:4]
-                response += f"| {i.entry:.0f} | {tests:<5} | {confidence:<10} | {i.status.value:<7} |\n"
-        
-        if tier4:
-            response += "\nTIER 4: BREAKDOWN SHORTS\n"
-            response += "| LEVEL | STATUS |\n"
-            response += "|-------|--------|\n"
-            for i in tier4:
-                response += f"| {i.entry:.0f} | {i.status.value:<7} |\n"
-        
-        if dp_ideas:
-            response += "\n"
-    
-    # Standard DP display
-    if dp_ideas:
-        response += "=== DP/INNER CIRCLE ===\n" if mancini_ideas else ""
-        response += "| TICKER | SOURCE | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
-        response += "|--------|--------|-------|--------|-------|------|----|----|-----|\n"
-        
-        for idea in sorted(dp_ideas, key=lambda x: (-x.score.score, x.ticker)):
-            entry_str = f"{idea.entry:.2f}" if idea.entry else "---"
-            stop_str = f"{idea.stop:.2f}" if idea.stop else "---"
-            t1_str = f"{idea.target1:.2f}" if idea.target1 else "---"
-            t2_str = f"{idea.target2:.2f}" if idea.target2 else "---"
-            rr_str = f"{idea.risk_reward:.1f}:1" if idea.risk_reward > 0 else "---"
-            
-            response += f"| {idea.ticker:<6} | {idea.source:<6} | {idea.score.score:.2f} | {idea.status.value:<7} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
-    
-    # Fallback to generic table if no source-specific formatting
-    if not mancini_ideas and not dp_ideas:
-        response = "| TICKER | SOURCE | TIER | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
-        response += "|--------|--------|------|-------|--------|-------|------|----|----|-----|\n"
-        
-        for idea in sorted(ideas, key=lambda x: (-x.score.score, x.ticker)):
-            tier_str = str(getattr(idea, "tier_level", "-")) if idea.source == "mancini" else "-"
-            entry_str = f"{idea.entry:.2f}" if idea.entry else "---"
-            stop_str = f"{idea.stop:.2f}" if idea.stop else "---"
-            t1_str = f"{idea.target1:.2f}" if idea.target1 else "---"
-            t2_str = f"{idea.target2:.2f}" if idea.target2 else "---"
-            rr_str = f"{idea.risk_reward:.1f}:1" if idea.risk_reward > 0 else "---"
-            
-            response += f"| {idea.ticker:<6} | {idea.source:<6} | {tier_str:<4} | {idea.score.score:.2f} | {idea.status.value:<10} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
-    
-    return response
+
+    # Sort – higher score first then ticker for stable display
+    ideas_sorted = sorted(ideas, key=lambda x: (-x.score.score, x.ticker))
+
+    table_lines = [
+        "| TICKER | SOURCE | TIER | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |",
+        "|--------|--------|------|-------|--------|-------|------|----|----|-----|",
+    ]
+
+    for idea in ideas_sorted:
+        tier_str = str(getattr(idea, "tier_level", "-")) if idea.source == "mancini" else "-"
+        entry_str = f"{idea.entry:.2f}" if idea.entry else "---"
+        stop_str = f"{idea.stop:.2f}" if idea.stop else "---"
+        t1_str = f"{idea.target1:.2f}" if idea.target1 else "---"
+        t2_str = f"{idea.target2:.2f}" if idea.target2 else "---"
+        rr_str = f"{idea.risk_reward:.1f}:1" if idea.risk_reward > 0 else "---"
+
+        table_lines.append(
+            f"| {idea.ticker:<6} | {idea.source:<6} | {tier_str:<4} | {idea.score.score:.2f} | "
+            f"{idea.status.value:<10} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |"
+        )
+
+    return "\n".join(table_lines) + "\n"
 
 def extract_symbols(text: str) -> List[str]:
     """Extract stock symbols from text."""
@@ -1190,68 +1143,24 @@ What's your first move?
         return "\n".join(response_lines)
     
     def handle_create_plan(self, message: str) -> str:
-        """Create trading plan maintaining source separation."""
-        dp_ideas = [i for i in self.context.ideas if i.source == "dp"]
-        mancini_ideas = [i for i in self.context.ideas if i.source == "mancini"]
-        
+        """Create or refresh the daily trading plan as a single unified table."""
+        # Simply render everything currently in context.ideas using the new unified table.
         response = "=== DAILY TRADING PLAN ===\n"
         response += f"Phase: PLAN -> FOCUS\n"
         response += f"Market Mode: {self.context.mode}\n\n"
-        
-        # DP Section
-        if dp_ideas:
-            response += "DP/INNER CIRCLE FOCUS:\n"
-            focus_trades = [i for i in dp_ideas if i.score.score >= 0.90]
-            high_conviction = [i for i in dp_ideas if 0.70 <= i.score.score < 0.90]
-            
-            if focus_trades:
-                response += "Focus Trades (0.90+):\n"
-                for idea in focus_trades[:3]:
-                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
-                    
-            if high_conviction:
-                response += "High Conviction (0.70-0.89):\n"
-                for idea in high_conviction[:3]:
-                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
-        
-        # Mancini Section
-        if mancini_ideas:
-            response += "\nMANCINI BLUEPRINT FOCUS:\n"
 
-            # Group by tier
-            tier0 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 0]
-            tier1 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 1]
-            tier4 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 4]
+        response += format_plan_table(self.context.ideas)
 
-            if tier0:
-                response += "Tier 0 – FAILED BREAKDOWNS:\n"
-                for idea in tier0:
-                    entry_str = f"  @ ES {idea.entry:.0f}" if idea.entry else ""
-                    response += f"  * ES{entry_str}: {idea.notes}\n"
-
-            if tier1:
-                response += "\nTier 1 – LEVEL RECLAIMS:\n"
-                for idea in tier1:
-                    entry_str = f"  @ ES {idea.entry:.0f}" if idea.entry else ""
-                    response += f"  * ES{entry_str}: {idea.notes}\n"
-
-            if tier4:
-                response += "\nTier 4 – BREAKDOWN SHORTS:\n"
-                for idea in tier4:
-                    entry_str = f"  @ ES {idea.entry:.0f}" if idea.entry else ""
-                    response += f"  * ES{entry_str}: {idea.notes}\n"
-
-        # Execution rules
+        # Generic execution rules (no longer source-specific for layout)
         response += "\nEXECUTION RULES:\n"
-        response += "* DP trades: Size by conviction score\n"
-        response += "* Mancini trades: Wait for acceptance confirmation\n"
-        response += "* Never mix scoring methodologies\n"
-        response += "* Verify source before ANY SPX trade\n"
-        
+        response += "* Size positions using conviction score (see 'size position <TICKER>')\n"
+        response += "* Confirm price is at ENTRY before executing a trade\n"
+        response += "* Respect STOP levels – no moving without a plan\n"
+
         self.context.phase = "FOCUS"
         response += "\n-> Phase updated to FOCUS"
-        response += "\n-> Use 'show plan' to see your live trading table"
-        
+        response += "\n-> Use 'show plan' to see or filter the table\n"
+
         return response
     
     def handle_show_plan(self, message: str) -> str:
