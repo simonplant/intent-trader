@@ -1,7 +1,7 @@
 """
 Intent Trader - AI Trading Assistant (Conservative Optimization)
-Version: 0.4.2
-Updated: 2024-06-11
+Version: 0.4.3
+Updated: 2024-06-12
 Author: Simon Plant
 License: MIT
 
@@ -453,8 +453,35 @@ class ManciniContentFilter:
         r"Reacting level to level",
     ]
 
+    # New patterns for bull/bear/tomorrow sections
+    BULL_SECTION_STARTS = [
+        r"Bull case tomorrow:",
+        r"Bull case Monday:",
+        r"Bull case:",
+        r"Bullish case:",
+        r"Bullish tomorrow:",
+        r"Bullish case tomorrow:",
+    ]
+
+    BEAR_SECTION_STARTS = [
+        r"Bear case tomorrow:",
+        r"Bear case Monday:",
+        r"Bear case:",
+        r"Bearish case:",
+        r"Bearish tomorrow:",
+        r"Bearish case tomorrow:",
+    ]
+
+    SUMMARY_SECTION_STARTS = [
+        r"In summary for tomorrow:",
+        r"In summary:",
+        r"Summary for tomorrow:",
+        r"Tomorrow's summary:",
+        r"Key points for tomorrow:",
+    ]
+
     def filter_content(self, content: str) -> Dict[str, str]:
-        """Return dict with filtered sections: opening_context, trade_plan, current_position, overnight_action"""
+        """Return dict with filtered sections: opening_context, trade_plan, current_position, overnight_action, bull_case, bear_case, summary"""
         lines = content.split("\n")
 
         def _extract_section(start_cond, end_cond=None, limit=None):
@@ -525,12 +552,44 @@ class ManciniContentFilter:
         ]
         overnight_action = "\n".join(overnight_lines[:10])
 
+        # Extract bull/bear/summary sections
+        bull_case = self._extract_bull_bear_summary_sections(lines, self.BULL_SECTION_STARTS)
+        bear_case = self._extract_bull_bear_summary_sections(lines, self.BEAR_SECTION_STARTS)
+        summary = self._extract_bull_bear_summary_sections(lines, self.SUMMARY_SECTION_STARTS)
+
         return {
             "opening_context": opening_context,
             "trade_plan": trade_plan,
             "current_position": current_position,
             "overnight_action": overnight_action,
+            "bull_case": bull_case,
+            "bear_case": bear_case,
+            "summary": summary,
         }
+
+    def _extract_bull_bear_summary_sections(self, lines: List[str], start_patterns: List[str]) -> str:
+        """Extract content from bull/bear/summary sections with flexible heading detection."""
+        section_lines = []
+        capturing = False
+        
+        for line in lines:
+            # Check if this line starts a new section
+            if not capturing and any(re.search(p, line, re.IGNORECASE) for p in start_patterns):
+                capturing = True
+                continue
+                
+            # If we're capturing and hit another section start, stop
+            if capturing and any(
+                re.search(p, line, re.IGNORECASE) 
+                for p in self.BULL_SECTION_STARTS + self.BEAR_SECTION_STARTS + self.SUMMARY_SECTION_STARTS
+            ):
+                break
+                
+            # If we're capturing, add the line
+            if capturing:
+                section_lines.append(line)
+                
+        return "\n".join(section_lines)
 
 class EnhancedManciniAnalyzer:
     """Framework-based Mancini analysis"""
@@ -568,10 +627,21 @@ class EnhancedManciniAnalyzer:
         r"overnight.*acceptance": "OVERNIGHT_ACCEPTANCE",
     }
 
+    # New patterns for tomorrow's trade ideas
+    TOMORROW_LEVEL_PATTERNS = [
+        r"(\d+).*support",
+        r"(\d+).*resistance",
+        r"(\d+).*level",
+        r"(\d+).*target",
+        r"(\d+).*entry",
+        r"(\d+).*stop",
+    ]
+
     # --- Pre-compiled regex sets for performance ---
     FAILED_BREAKDOWN_RE = [re.compile(p, re.IGNORECASE) for p in FAILED_BREAKDOWN_PATTERNS]
     LEVEL_RECLAIM_RE = [re.compile(p, re.IGNORECASE) for p in LEVEL_RECLAIM_PATTERNS]
     ACCEPTANCE_RE = {re.compile(p, re.IGNORECASE): label for p, label in ACCEPTANCE_PATTERNS.items()}
+    TOMORROW_LEVEL_RE = [re.compile(p, re.IGNORECASE) for p in TOMORROW_LEVEL_PATTERNS]
 
     def analyze(self, filtered_sections: Dict[str, str]) -> Dict[str, any]:
         """Return structured analysis from filtered newsletter content."""
@@ -581,13 +651,90 @@ class EnhancedManciniAnalyzer:
         setups = self._extract_setups(combined_text)
         levels = self._extract_levels(combined_text)
 
+        # Extract tomorrow's trade ideas from bull/bear/summary sections
+        tomorrow_setups = self._extract_tomorrow_setups(
+            filtered_sections.get("bull_case", ""),
+            filtered_sections.get("bear_case", ""),
+            filtered_sections.get("summary", "")
+        )
+
         return {
             "market_context": market_context,
             "setups": setups,
             "levels": levels,
             "current_position": filtered_sections["current_position"],
             "overnight_action": filtered_sections["overnight_action"],
+            "tomorrow_setups": tomorrow_setups,
         }
+
+    def _extract_tomorrow_setups(self, bull_case: str, bear_case: str, summary: str) -> List[Dict[str, any]]:
+        """Extract trade setups from tomorrow's sections."""
+        setups = []
+        
+        # Process bull case
+        if bull_case:
+            bull_levels = self._extract_levels_from_section(bull_case)
+            for level in bull_levels:
+                setups.append({
+                    "tier": 0,  # High conviction for tomorrow's explicit calls
+                    "type": "bull_case",
+                    "level": level,
+                    "direction": "long",
+                    "context": bull_case,
+                    "score": 0.90,  # High score for explicit tomorrow calls
+                    "mancini_confidence": "HIGH",
+                    "source_section": "bull_case"
+                })
+        
+        # Process bear case
+        if bear_case:
+            bear_levels = self._extract_levels_from_section(bear_case)
+            for level in bear_levels:
+                setups.append({
+                    "tier": 0,  # High conviction for tomorrow's explicit calls
+                    "type": "bear_case",
+                    "level": level,
+                    "direction": "short",
+                    "context": bear_case,
+                    "score": 0.90,  # High score for explicit tomorrow calls
+                    "mancini_confidence": "HIGH",
+                    "source_section": "bear_case"
+                })
+        
+        # Process summary for additional context
+        if summary:
+            summary_levels = self._extract_levels_from_section(summary)
+            for level in summary_levels:
+                # Only add if not already captured in bull/bear cases
+                if not any(s["level"] == level for s in setups):
+                    setups.append({
+                        "tier": 1,  # Medium conviction for summary mentions
+                        "type": "summary_level",
+                        "level": level,
+                        "direction": "long",  # Default to long, will be adjusted based on context
+                        "context": summary,
+                        "score": 0.70,
+                        "mancini_confidence": "MEDIUM",
+                        "source_section": "summary"
+                    })
+        
+        return setups
+
+    def _extract_levels_from_section(self, text: str) -> List[float]:
+        """Extract price levels from a section using tomorrow-specific patterns."""
+        levels = set()
+        
+        # Extract using tomorrow-specific patterns
+        for pat in self.TOMORROW_LEVEL_RE:
+            for m in pat.finditer(text):
+                try:
+                    level = float(m.group(1))
+                    if 3000 <= level <= 99999:  # Valid ES level range
+                        levels.add(level)
+                except (ValueError, IndexError):
+                    continue
+        
+        return sorted(list(levels))
 
     def _extract_market_context(self, text: str) -> Dict[str, str]:
         tl = text.lower()
@@ -688,7 +835,7 @@ class IntentTrader:
     def __str__(self):
         """Display startup screen."""
         return f"""
-=== INTENT TRADER v0.4.2 ===
+=== INTENT TRADER v0.4.3 ===
 Phase: {self.context.phase}
 Mode: {self.context.mode}
 Positions: {len(self.context.positions)}
@@ -916,6 +1063,33 @@ What's your first move?
             )
             self.context.ideas.append(idea)
 
+        # Add tomorrow's trade ideas
+        for setup in analysis.get("tomorrow_setups", []):
+            # Skip if we already have this level
+            existing = next((i for i in self.context.ideas if i.source == "mancini" and i.entry == setup["level"]), None)
+            if existing:
+                continue
+
+            # Create label based on source section
+            label = setup["type"].upper()
+            if setup["type"] == "bull_case":
+                label = "BULL_CALL"
+            elif setup["type"] == "bear_case":
+                label = "BEAR_CALL"
+
+            idea = TradeIdea(
+                ticker="ES",
+                source="mancini",
+                score=ConvictionScore(setup["score"], "mancini", label),
+                entry=setup["level"],
+                notes=setup["context"],
+                tier_level=setup["tier"],
+                type=setup["direction"],
+                volatility_context=analysis["market_context"].get("volatility"),
+                mancini_confidence=setup["mancini_confidence"],
+            )
+            self.context.ideas.append(idea)
+
         # Store full analysis for later reference
         self.context.mancini_analysis = analysis
 
@@ -924,6 +1098,32 @@ What's your first move?
         mc = analysis["market_context"]
         response_lines.append(f"Market Regime: {mc['regime']} | Mode: {mc['mode']} | Vol: {mc['volatility']}")
 
+        # Tomorrow's Trade Ideas (New Section)
+        tomorrow_setups = analysis.get("tomorrow_setups", [])
+        if tomorrow_setups:
+            response_lines.append("\n=== TOMORROW'S TRADE IDEAS ===")
+            
+            # Group by type
+            bull_calls = [s for s in tomorrow_setups if s["type"] == "bull_case"]
+            bear_calls = [s for s in tomorrow_setups if s["type"] == "bear_case"]
+            summary_levels = [s for s in tomorrow_setups if s["type"] == "summary_level"]
+            
+            if bull_calls:
+                response_lines.append("\nBULL CASE:")
+                for s in bull_calls:
+                    response_lines.append(f"• ES {s['level']:.0f} LONG (score {s['score']:.2f})")
+            
+            if bear_calls:
+                response_lines.append("\nBEAR CASE:")
+                for s in bear_calls:
+                    response_lines.append(f"• ES {s['level']:.0f} SHORT (score {s['score']:.2f})")
+            
+            if summary_levels:
+                response_lines.append("\nKEY LEVELS:")
+                for s in summary_levels:
+                    response_lines.append(f"• ES {s['level']:.0f} (score {s['score']:.2f})")
+
+        # Regular Tier Analysis
         tier0 = [s for s in analysis["setups"] if s["tier"] == 0]
         tier1 = [s for s in analysis["setups"] if s["tier"] == 1]
         tier4 = [s for s in analysis["setups"] if s["tier"] == 4]
@@ -1139,7 +1339,7 @@ What's your first move?
     def handle_help(self, message: str) -> str:
         """Show help information."""
         return """
-=== INTENT TRADER v0.4.2 HELP ===
+=== INTENT TRADER v0.4.3 HELP ===
 
 WORKFLOW:
 1. PLAN: Analyze DP/Mancini → Create plan
@@ -1988,7 +2188,7 @@ if __name__ == "__main__":
         # If someone runs this file directly
         print("""
 +------------------------------------------------+
-|  Intent Trader v0.4.2 - AI Assistant           |
+|  Intent Trader v0.4.3 - AI Assistant           |
 |                                                |
 |  This version is designed for AI assistants.   |
 |  For interactive use, import and use:          |
