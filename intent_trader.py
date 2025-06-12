@@ -15,6 +15,8 @@ from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Optional, Tuple, Any
 from enum import Enum
 import inspect
+import os
+from pathlib import Path
 
 # === CONSTANTS ===
 
@@ -42,6 +44,47 @@ PRICE_ALERT_THRESHOLD = 0.01
 MAX_CLOSED_POSITIONS = 100
 MAX_JOURNAL_ENTRIES = 500
 MAX_MODERATOR_TRADES = 100
+
+# Global override for ES-SPX offset (None = auto, int = manual value)
+manual_override_offset: Optional[int] = None
+
+def get_es_spx_offset(as_of: Optional[datetime] = None) -> int:
+    """Calculate the current ES-SPX offset based on time decay.
+    
+    The offset decays linearly from ~40 points at contract start to ~5 points
+    at expiry, based on the quarterly roll cycle.
+    
+    Args:
+        as_of: Optional datetime to calculate offset for (defaults to now)
+        
+    Returns:
+        int: The current offset in points
+    """
+    if manual_override_offset is not None:
+        return manual_override_offset
+        
+    if as_of is None:
+        as_of = datetime.today()
+
+    # Quarterly roll dates (3rd Friday of Mar/Jun/Sep/Dec)
+    expiry_dates = [
+        datetime(as_of.year, 3, 15),
+        datetime(as_of.year, 6, 21),
+        datetime(as_of.year, 9, 20),
+        datetime(as_of.year, 12, 20),
+    ]
+
+    # Find the next expiry and start
+    for i, expiry in enumerate(expiry_dates):
+        if as_of <= expiry:
+            start = expiry_dates[i - 1] if i > 0 else datetime(as_of.year - 1, 12, 15)
+            days_total = (expiry - start).days
+            days_left = (expiry - as_of).days
+            decay = max(0, min(1.0, days_left / days_total))
+            offset = round(5 + 35 * decay)  # Linear decay from 40 → 5
+            return offset
+
+    return 5  # Fallback
 
 # === SHARED HELPER FUNCTIONS ===
 
@@ -852,39 +895,34 @@ What's your first move?
 """
     
     def _register_handlers(self) -> Dict[str, callable]:
-        """Automatically discover handlers and wire common aliases."""
-        # Auto-generate from every method named `handle_*`
-        handlers = {
-            name[7:].replace('_', ' '): func
-            for name, func in inspect.getmembers(self, predicate=callable)
-            if name.startswith("handle_")
+        """Register all command handlers."""
+        return {
+            "analyze dp": self.handle_analyze_dp,
+            "analyze mancini": self.handle_analyze_mancini,
+            "create plan": self.handle_create_plan,
+            "show plan": self.handle_show_plan,
+            "execute": self.handle_execute,
+            "positions": self.handle_positions,
+            "help": self.handle_help,
+            "add trade": self.handle_add_trade,
+            "update prices": self.handle_update_prices,
+            "execute from plan": self.handle_execute_from_plan,
+            "exit": self.handle_exit,
+            "move stop": self.handle_move_stop,
+            "lock profits": self.handle_lock_profits,
+            "save": self.handle_save,
+            "load": self.handle_load,
+            "invalidate": self.handle_invalidate,
+            "journal": self.handle_journal,
+            "chart": self.handle_chart,
+            "coach": self.handle_coach,
+            "review": self.handle_review,
+            "behavioral check": self.handle_behavioral_check,
+            "log moderator": self.handle_log_moderator,
+            "size position": self.handle_size_position,
+            "show offset": self.handle_show_offset,
+            "set offset": self.handle_set_offset,  # New handler
         }
-
-        # Chat-friendly aliases
-        aliases: Dict[str, callable] = {
-            # EXECUTION shorthand
-            "add": handlers.get("add trade"),
-            "buy": self.handle_execute,
-            "sell": self.handle_execute,
-            "size": handlers.get("size position"),
-
-            # PLAN management extras
-            "plan table": self.handle_show_plan,
-            "waiting": self.handle_show_plan,
-            "active": self.handle_show_plan,
-            "done": self.handle_show_plan,
-            "execute plan": self.handle_execute_from_plan,
-
-            # Misc convenience
-            "lock 75": self.handle_lock_profits,
-            "behavioral": self.handle_behavioral_check,
-            "log mod": self.handle_log_moderator,
-            "see": self.handle_chart,
-            "mean": self.handle_chart,
-        }
-
-        handlers.update({k: v for k, v in aliases.items() if v})
-        return handlers
     
     def process(self, message: str) -> str:
         """Main entry point - process any message."""
@@ -2130,6 +2168,63 @@ Try commands like:
 • show plan
 • buy AAPL
 • positions"""
+
+    def handle_show_offset(self, message: str) -> str:
+        """Show the current ES-SPX offset and its status."""
+        offset = get_es_spx_offset()
+        status = "manual" if manual_override_offset is not None else "auto"
+        
+        response = f"📊 ES-SPX Offset: {offset} points ({status})\n"
+        
+        if status == "auto":
+            # Show next expiry info
+            now = datetime.now()
+            expiry_dates = [
+                datetime(now.year, 3, 15),
+                datetime(now.year, 6, 21),
+                datetime(now.year, 9, 20),
+                datetime(now.year, 12, 20),
+            ]
+            
+            next_expiry = None
+            for expiry in expiry_dates:
+                if expiry > now:
+                    next_expiry = expiry
+                    break
+                    
+            if next_expiry:
+                days_to_expiry = (next_expiry - now).days
+                response += f"Next expiry: {next_expiry.strftime('%Y-%m-%d')} ({days_to_expiry} days)\n"
+                response += f"Offset will decay to ~5 points by expiry\n"
+        
+        return response
+
+    def handle_set_offset(self, message: str) -> str:
+        """Set a manual override for the ES-SPX offset.
+        
+        Usage:
+            set offset 12    # Set manual offset to 12 points
+            set offset auto  # Reset to automatic calculation
+        """
+        global manual_override_offset
+        
+        parts = message.lower().split()
+        if len(parts) < 3:
+            return "❌ Usage: set offset <points> or set offset auto"
+            
+        value = parts[2]
+        if value == "auto":
+            manual_override_offset = None
+            return "✅ ES-SPX offset reset to automatic calculation"
+            
+        try:
+            offset = int(value)
+            if offset < 0 or offset > 50:
+                return "❌ Offset must be between 0 and 50 points"
+            manual_override_offset = offset
+            return f"✅ ES-SPX offset set to {offset} points (manual)"
+        except ValueError:
+            return "❌ Invalid offset value. Use a number or 'auto'"
 
 # === GLOBAL FUNCTIONS ===
 

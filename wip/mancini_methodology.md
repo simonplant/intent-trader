@@ -139,12 +139,24 @@ def manage_trade(position: str) -> str:
 ### 6. ES to SPX Mapping
 ```python
 def map_es_spx(es_level: float) -> tuple[float, float]:
-    """Convert between ES and SPX with configurable offset"""
-    # Standard offset: ES = SPX * 10
-    # But can vary 5-15 points based on market conditions
+    """Convert between ES and SPX with dynamic offset based on time decay.
     
-    spx_equivalent = es_level / 10
-    offset_range = (es_level - 15, es_level - 5)
+    The offset decays linearly from ~40 points at contract start to ~5 points
+    at expiry, based on the quarterly roll cycle.
+    
+    Args:
+        es_level: The ES futures level
+        
+    Returns:
+        tuple: (spx_equivalent, offset_range)
+            - spx_equivalent: The SPX level (ES/10 - offset)
+            - offset_range: Tuple of (min_offset, max_offset) for validation
+    """
+    offset = get_es_spx_offset()
+    spx_equivalent = (es_level - offset) / 10
+    
+    # Allow for some variation in the offset
+    offset_range = (offset - 2, offset + 2)
     
     return spx_equivalent, offset_range
 ```

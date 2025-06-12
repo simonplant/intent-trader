@@ -1,6 +1,6 @@
 # Intent Trader - AI-Native Trading Assistant
 
-**Version:** 0.4.2  
+**Version:** 0.4.3  
 **Date:** 2024-06-12  
 **Author:** Simon Plant  
 **License:** MIT
@@ -51,7 +51,7 @@ That's it! The AI becomes your trading assistant.
 
 ### What You'll See:
 ```
-=== INTENT TRADER v0.4.2 INITIALIZED ===
+=== INTENT TRADER v0.4.3 INITIALIZED ===
 Phase: PLAN
 Mode: Mode2
 Positions: 0
@@ -72,7 +72,7 @@ No installation required! Intent Trader runs entirely within your AI chat applic
 ### For Developers
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/intent-trader.git
+git clone https://github.com/simonplant/intent-trader.git
 cd intent-trader
 
 # Create and activate virtual environment (optional but recommended)
@@ -137,7 +137,7 @@ intent-trader/
 - Context save/load functionality
 - Comprehensive help system
 
-### Latest Additions (v0.4.2)
+### Latest Additions (v0.4.3)
 - Chart analysis integration
 - Color schema detection
 - Pattern scoring system
@@ -146,6 +146,11 @@ intent-trader/
 - Moderator activity tracking
 - Plan alignment scoring
 - Global price updates
+- ES-SPX offset utilities (`show offset`, `set offset <n>|auto`)
+- Tomorrow's trade-idea extraction from bull/bear/summary sections
+- Manual offset override & auto-decay algorithm
+- Enhanced Failed Breakdown & Level Reclaim detection logic
+- Real-time overtrading after-stop behavioral alerts
 
 ## Architecture
 

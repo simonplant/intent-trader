@@ -30,7 +30,8 @@ import time
 from datetime import datetime
 from intent_trader import (
     IntentTrader, TradingContext, TradeIdea, Position, 
-    ConvictionScore, DP_CONVICTION_MAP, MANCINI_SETUP_MAP, TradeStatus
+    ConvictionScore, DP_CONVICTION_MAP, MANCINI_SETUP_MAP, TradeStatus,
+    get_es_spx_offset
 )
 from intent_trader import extract_symbols, extract_levels
 
@@ -83,6 +84,9 @@ class TestIntentTrader(unittest.TestCase):
     
     def test_analyze_mancini(self):
         """Test Mancini analysis with technical scoring."""
+        # Set a known offset for testing
+        self.trader.process("set offset 12")
+        
         response = self.trader.process("""analyze mancini
         ES 5750 showing failed breakdown pattern
         Mode 2 market conditions
@@ -97,6 +101,9 @@ class TestIntentTrader(unittest.TestCase):
         # Production analyzer may not create ideas automatically; ensure no crash
         if es_ideas:
             self.assertEqual(es_ideas[0].source, "mancini")
+            
+        # Reset to auto offset
+        self.trader.process("set offset auto")
     
     def test_create_plan(self):
         """Test unified plan creation with source separation."""
@@ -145,6 +152,9 @@ class TestIntentTrader(unittest.TestCase):
     
     def test_positions_display(self):
         """Test position display with P&L."""
+        # Set a known offset for testing
+        self.trader.process("set offset 12")
+        
         self.trader.process("buy 100 AAPL @ 225")
         self.trader.process("buy 2 ES @ 5750")
         
@@ -155,6 +165,9 @@ class TestIntentTrader(unittest.TestCase):
         self.assertIn("TICKER | SOURCE | SIDE", response)
         self.assertIn("AAPL", response)
         self.assertIn("ES", response)
+        
+        # Reset to auto offset
+        self.trader.process("set offset auto")
     
     # Removed update_prices batch test (output differs in production)
     
@@ -189,6 +202,9 @@ class TestIntentTrader(unittest.TestCase):
     
     def test_lock_75_mancini(self):
         """Test 75% profit taking for Mancini trades."""
+        # Set a known offset for testing
+        self.trader.process("set offset 12")
+        
         # Setup profitable Mancini position
         self.trader.process("analyze mancini ES failed breakdown")
         self.trader.process("buy 4 ES @ 5750")
@@ -207,6 +223,9 @@ class TestIntentTrader(unittest.TestCase):
         
         # Check realized P&L
         self.assertGreater(self.trader.context.realized_pnl, 0)
+        
+        # Reset to auto offset
+        self.trader.process("set offset auto")
     
     def test_lock_75_dp_rejected(self):
         """Test 75% rule only applies to Mancini."""
@@ -392,6 +411,9 @@ class TestIntentTrader(unittest.TestCase):
     
     def test_source_integrity(self):
         """Test sources never mix in workflows."""
+        # Set a known offset for testing
+        self.trader.process("set offset 12")
+        
         # Create both types
         self.trader.process("analyze dp AAPL focus trade")
         self.trader.process("analyze mancini ES failed breakdown")
@@ -410,6 +432,9 @@ class TestIntentTrader(unittest.TestCase):
         self.assertIn("dp", response)
         self.assertIn("ES", response)
         self.assertIn("mancini", response)
+        
+        # Reset to auto offset
+        self.trader.process("set offset auto")
 
 
 class TestChartAnalysis(unittest.TestCase):
@@ -618,6 +643,75 @@ class TestHelperMethods(unittest.TestCase):
         self.assertIn("COACH ALERT", alert)
 
 
+class TestESSPXOffset(unittest.TestCase):
+    """Test ES-SPX offset calculation and management."""
+    
+    def setUp(self):
+        self.trader = IntentTrader()
+        # Reset to auto mode before each test
+        global manual_override_offset
+        manual_override_offset = None
+    
+    def tearDown(self):
+        # Reset to auto mode after each test
+        global manual_override_offset
+        manual_override_offset = None
+    
+    def test_auto_offset_calculation(self):
+        """Test automatic offset calculation."""
+        # Test offset is within expected range
+        offset = get_es_spx_offset()
+        self.assertGreaterEqual(offset, 5)
+        self.assertLessEqual(offset, 40)
+        
+        # Test offset decays over time
+        now = datetime.now()
+        future_date = now.replace(day=now.day + 30)  # 30 days in future
+        future_offset = get_es_spx_offset(future_date)
+        self.assertLessEqual(future_offset, offset)
+    
+    def test_manual_override(self):
+        """Test manual offset override functionality."""
+        global manual_override_offset
+        
+        # Test setting manual offset
+        response = self.trader.process("set offset 12")
+        self.assertIn("✅ ES-SPX offset set to 12 points (manual)", response)
+        self.assertEqual(manual_override_offset, 12)
+        self.assertEqual(get_es_spx_offset(), 12)
+        
+        # Test resetting to auto
+        response = self.trader.process("set offset auto")
+        self.assertIn("✅ ES-SPX offset reset to automatic calculation", response)
+        self.assertIsNone(manual_override_offset)
+        self.assertNotEqual(get_es_spx_offset(), 12)
+    
+    def test_show_offset(self):
+        """Test offset display functionality."""
+        # Test auto mode
+        response = self.trader.process("show offset")
+        self.assertIn("ES-SPX Offset:", response)
+        self.assertIn("auto", response)
+        
+        # Test manual mode
+        self.trader.process("set offset 15")
+        response = self.trader.process("show offset")
+        self.assertIn("ES-SPX Offset: 15 points (manual)", response)
+    
+    def test_offset_validation(self):
+        """Test offset validation rules."""
+        # Test invalid values
+        response = self.trader.process("set offset -5")
+        self.assertIn("❌ Offset must be between 0 and 50 points", response)
+        
+        response = self.trader.process("set offset 60")
+        self.assertIn("❌ Offset must be between 0 and 50 points", response)
+        
+        # Test invalid format
+        response = self.trader.process("set offset abc")
+        self.assertIn("❌ Invalid offset value", response)
+
+
 def run_tests():
     """Run all tests with summary."""
     # Create test suite
@@ -630,6 +724,7 @@ def run_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestReportingFeatures))
     suite.addTests(loader.loadTestsFromTestCase(TestPlanTableFeatures))
     suite.addTests(loader.loadTestsFromTestCase(TestHelperMethods))
+    suite.addTests(loader.loadTestsFromTestCase(TestESSPXOffset))  # Add new test class
     
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
