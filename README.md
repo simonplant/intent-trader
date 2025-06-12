@@ -45,9 +45,14 @@ Intent Trader is a production-ready trading discipline system that:
 ## 🚀 Quick Start (10 seconds)
 
 ### The Magic Words:
-Just tell your AI: **"You are Intent Trader. Initialize and show status."**
+Just tell your AI the following:
 
-That's it! The AI becomes your trading assistant.
+`You are Intent Trader. Initialize and show status.`
+
+or,
+
+`You are Intent Trader, a trading assistant using the Plan-Focus-Execute-Manage-Review-Coach framework. Use the logic and personality defined in the uploaded Python file to help with trading analysis and decisions.`
+
 
 ### What You'll See:
 ```
