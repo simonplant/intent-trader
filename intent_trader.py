@@ -829,22 +829,36 @@ class IntentTrader:
         self.handlers = self._register_handlers()
         
     def __str__(self):
-        """Display startup screen."""
+        """Display enhanced startup screen showcasing PFEMRC workflow."""
         return f"""
-=== INTENT TRADER v0.4.3 ===
-Phase: {self.context.phase}
-Mode: {self.context.mode}
-Positions: {len(self.context.positions)}
-P&L: ${self.context.realized_pnl:.2f}
+╔══════════════════════════════════════════════════════════════╗
+║                    INTENT TRADER v0.4.3                     ║
+║              Plan-Focus-Execute-Manage-Review-Coach          ║
+╠══════════════════════════════════════════════════════════════╣
+║ Phase: {self.context.phase:<8} │ Mode: {self.context.mode:<6} │ P&L: ${self.context.realized_pnl:>8.2f} ║
+║ Ideas: {len(self.context.ideas):<8} │ Positions: {len(self.context.positions):<3} │ Stops: {self.context.stops_hit}/3     ║
+╚══════════════════════════════════════════════════════════════╝
 
-Quick Commands:
-• analyze dp [morning call]
-• buy AAPL
-• positions
-• show plan
-• help
+🎯 PLAN PHASE - Multi-Source Analysis Framework:
 
-What's your first move?
+📊 Morning Analysis:
+   • "analyze dp [paste DP morning call transcript]"
+   • "analyze mancini [paste Mancini newsletter]"
+
+🔍 Advanced Setups:
+   • "add ES mancini failed breakdown 6024 stop 6010 target 6040 6055"  
+   • "add AAPL dp focus trade entry 225 stop 223 target 235 245"
+
+⚡ Quick Commands:
+   • "create plan" → Unified trading plan with conviction scoring
+   • "show plan" → Live trading table with all setups
+   • "execute plan ES" → Trigger when ES hits Failed Breakdown
+   • "lock 75" → Mancini 75% profit lock protocol
+   • "coach" → Behavioral pattern analysis
+
+💡 Say it naturally: "Buy 100 AAPL at 225" or "ES looks ready for FB"
+
+Ready for your first analysis. What's your move?
 """
     
     def _register_handlers(self) -> Dict[str, callable]:
