@@ -75,6 +75,11 @@ class TradeIdea:
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
     rank: int = 0
     type: str = "long"
+    # --- Enhanced Mancini framework fields (optional) ---
+    tier_level: Optional[int] = None          # 0, 1, 4 per Mancini tiers
+    acceptance_pattern: Optional[str] = None  # e.g., BACKTEST_RETURN, RIP_SELLOFF_RECOVER
+    volatility_context: Optional[str] = None  # HIGH, MODERATE, LOW
+    flush_target: Optional[float] = None      # Specific FB flush target level
     _status: Optional[TradeStatus] = field(default=None, repr=False)
     triggered_at: Optional[float] = None
     current_price: Optional[float] = None
@@ -448,74 +453,75 @@ What's your first move?
         return response
     
     def handle_analyze_mancini(self, message: str) -> str:
-        """Analyze Mancini newsletter with technical scoring."""
-        analysis = {
-            "mode": "Mode2",  # Default
-            "setups": [],
-            "levels": []
-        }
-        
-        msg_lower = message.lower()
-        levels = self._extract_levels(message)
-        
-        # Detect market mode
-        if "trending" in msg_lower or "mode 1" in msg_lower:
-            analysis["mode"] = "Mode1"
-        elif "complex" in msg_lower or "mode 2" in msg_lower:
-            analysis["mode"] = "Mode2"
-            
-        # Find setups
-        found_setups = []
-        for pattern, (score, label) in MANCINI_SETUP_MAP.items():
-            if pattern in msg_lower:
-                # ES is the primary instrument for Mancini
-                idea = TradeIdea(
-                    ticker="ES",
-                    source="mancini",
-                    score=ConvictionScore(score, "mancini", label)
-                )
-                
-                # Add SPX equivalent if ES levels found
-                if levels and levels[0] > 1000:  # Likely ES level
-                    es_level = levels[0]
-                    idea.entry = es_level
-                    idea.notes = f"ES {es_level} = SPX {es_level/10:.0f}"
-                    
-                    # Also create SPX idea
-                    spx_idea = TradeIdea(
-                        ticker="SPX",
-                        source="mancini",
-                        score=ConvictionScore(score, "mancini", label),
-                        entry=es_level/10,
-                        notes=f"Derived from ES {es_level}"
-                    )
-                    
-                    self.context.ideas.extend([idea, spx_idea])
-                    analysis["setups"].append(f"{label} @ ES {es_level}")
-                    found_setups.append((label, score, es_level))
-                else:
-                    self.context.ideas.append(idea)
-                    analysis["setups"].append(f"{label} (no level)")
-                    found_setups.append((label, score, None))
-                    
-        # Store analysis
-        analysis["levels"] = levels
+        """Enhanced Mancini analysis with smart content filtering and tier-based scoring."""
+
+        # Phase 1: Filter to actionable content
+        content_filter = ManciniContentFilter()
+        filtered = content_filter.filter_content(message)
+
+        # Phase 2: Structured analysis with enhanced framework
+        analyzer = EnhancedManciniAnalyzer()
+        analysis = analyzer.analyze(filtered)
+
+        # Update context mode from market context
+        self.context.mode = analysis["market_context"].get("mode", "Mode2")
+
+        # Convert setups to TradeIdea objects (ES primary)
+        for setup in analysis["setups"]:
+            # Skip duplicate idea for same level & tier
+            existing = next((i for i in self.context.ideas if i.source == "mancini" and getattr(i, "tier_level", None) == setup["tier"] and i.entry == setup["level"]), None)
+            if existing:
+                continue
+
+            # Map tier to familiar label for legacy compatibility
+            tier_label_map = {0: "FB", 1: "Reclaim", 4: "Breakdown"}
+            label = tier_label_map.get(setup["tier"], f"Tier {setup['tier']}")
+
+            idea = TradeIdea(
+                ticker="ES",
+                source="mancini",
+                score=ConvictionScore(setup["score"], "mancini", label),
+                entry=setup["level"],
+                notes=setup["context"],
+                tier_level=setup["tier"],
+                volatility_context=analysis["market_context"].get("volatility"),
+            )
+            self.context.ideas.append(idea)
+
+        # Store full analysis for later reference
         self.context.mancini_analysis = analysis
-        self.context.mode = analysis["mode"]
-        
-        # Format response
-        response = "=== MANCINI ANALYSIS ===\n"
-        response += f"Market Mode: {analysis['mode']}\n"
-        response += f"ES Levels: {', '.join(map(str, levels[:4]))}\n"
-        
-        if found_setups:
-            response += "\nTECHNICAL SCORING:\n"
-            for label, score, level in found_setups:
-                level_str = f" @ ES {level}" if level else ""
-                response += f"  * {label}: {score:.2f}{level_str}\n"
-                    
-        response += "\n-> Next: 'create plan'"
-        return response
+
+        # Build response grouped by tiers
+        response_lines = ["=== MANCINI ANALYSIS (FILTERED) ==="]
+        mc = analysis["market_context"]
+        response_lines.append(f"Market Regime: {mc['regime']} | Mode: {mc['mode']} | Vol: {mc['volatility']}")
+
+        tier0 = [s for s in analysis["setups"] if s["tier"] == 0]
+        tier1 = [s for s in analysis["setups"] if s["tier"] == 1]
+        tier4 = [s for s in analysis["setups"] if s["tier"] == 4]
+
+        if tier0:
+            response_lines.append("\nTIER 0: FAILED BREAKDOWNS (Core Edge)")
+            for s in tier0:
+                response_lines.append(f"• ES {s['level']:.0f} FB (score {s['score']:.2f})")
+
+        if tier1:
+            response_lines.append("\nTIER 1: LEVEL RECLAIMS")
+            for s in tier1:
+                response_lines.append(f"• ES {s['level']:.0f} Reclaim (score {s['score']:.2f})")
+
+        if tier4:
+            response_lines.append("\nTIER 4: BREAKDOWN SHORT")
+            for s in tier4:
+                response_lines.append(f"• ES {s['level']:.0f} Breakdown (score {s['score']:.2f})")
+
+        if analysis.get("current_position"):
+            response_lines.append("\nCURRENT POSITION SUMMARY:")
+            response_lines.append(analysis["current_position"][:200] + ("..." if len(analysis["current_position"]) > 200 else ""))
+
+        response_lines.append("\n-> Next: 'create plan' to merge with DP analysis")
+
+        return "\n".join(response_lines)
     
     def handle_create_plan(self, message: str) -> str:
         """Create trading plan maintaining source separation."""
@@ -545,22 +551,30 @@ What's your first move?
         # Mancini Section
         if mancini_ideas:
             response += "\nMANCINI BLUEPRINT FOCUS:\n"
-            fb_setups = [i for i in mancini_ideas if i.score.label == "FB"]
-            other_setups = [i for i in mancini_ideas if i.score.label != "FB"]
-            
-            if fb_setups:
-                response += "Failed Breakdowns (Primary Edge):\n"
-                for idea in fb_setups:
-                    entry_str = f" @ {idea.entry}" if idea.entry else ""
-                    response += f"  * {idea.ticker}: {idea.score.label}{entry_str}\n"
-                    if idea.notes:
-                        response += f"    -> {idea.notes}\n"
-                        
-            if other_setups:
-                response += "Other Setups:\n"
-                for idea in other_setups[:2]:
-                    response += f"  * {idea.ticker}: {idea.score.label} ({idea.score.score:.2f})\n"
-        
+
+            # Group by tier
+            tier0 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 0]
+            tier1 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 1]
+            tier4 = [i for i in mancini_ideas if getattr(i, "tier_level", None) == 4]
+
+            if tier0:
+                response += "Tier 0 – FAILED BREAKDOWNS:\n"
+                for idea in tier0:
+                    entry_str = f"  @ ES {idea.entry:.0f}" if idea.entry else ""
+                    response += f"  * ES{entry_str}: {idea.notes}\n"
+
+            if tier1:
+                response += "\nTier 1 – LEVEL RECLAIMS:\n"
+                for idea in tier1:
+                    entry_str = f"  @ ES {idea.entry:.0f}" if idea.entry else ""
+                    response += f"  * ES{entry_str}: {idea.notes}\n"
+
+            if tier4:
+                response += "\nTier 4 – BREAKDOWN SHORTS:\n"
+                for idea in tier4:
+                    entry_str = f"  @ ES {idea.entry:.0f}" if idea.entry else ""
+                    response += f"  * ES{entry_str}: {idea.notes}\n"
+
         # Execution rules
         response += "\nEXECUTION RULES:\n"
         response += "* DP trades: Size by conviction score\n"
@@ -605,17 +619,18 @@ What's your first move?
             return response
         
         # Create table format
-        response += "| TICKER | SOURCE | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
-        response += "|--------|--------|-------|--------|-------|------|----|----|-----|\n"
+        response += "| TICKER | SOURCE | TIER | SCORE | STATUS | ENTRY | STOP | T1 | T2 | R:R |\n"
+        response += "|--------|--------|------|-------|--------|-------|------|----|----|-----|\n"
         
         for idea in sorted(ideas_to_show, key=lambda x: (-x.score.score, x.ticker)):
+            tier_str = str(getattr(idea, "tier_level", "-")) if idea.source == "mancini" else "-"
             entry_str = f"{idea.entry:.2f}" if idea.entry else "---"
             stop_str = f"{idea.stop:.2f}" if idea.stop else "---"
             t1_str = f"{idea.target1:.2f}" if idea.target1 else "---"
             t2_str = f"{idea.target2:.2f}" if idea.target2 else "---"
             rr_str = f"{idea.risk_reward:.1f}:1" if idea.risk_reward > 0 else "---"
             
-            response += f"| {idea.ticker:<6} | {idea.source:<6} | {idea.score.score:.2f} | {idea.status.value:<10} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
+            response += f"| {idea.ticker:<6} | {idea.source:<6} | {tier_str:<4} | {idea.score.score:.2f} | {idea.status.value:<10} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} | {rr_str:<5} |\n"
         
         # Add action hints
         response += "\nACTIONS:\n"
@@ -1959,3 +1974,224 @@ class DPConvictionAnalyzer:
                 }
                 break
         return result
+
+# === ENHANCED MANCINI ANALYSIS UTILS ===
+
+
+class ManciniContentFilter:
+    """Smart content filtering for Mancini newsletters (Phase 1 improvement)"""
+
+    # Section boundary patterns
+    OPENING_SECTION_ENDS = [
+        r"Trade Recap",
+        r"Education",
+        r"How My Trailing Stop",
+        r"The Run Down on",
+        r"Before getting into",
+        r"This section is intended",
+        r"NOTE: The purpose of this trade recap",
+    ]
+
+    TRADE_PLAN_STARTS = [
+        r"Trade Plan \\w+",  # e.g. Trade Plan Thursday
+        r"Trade plan for tomorrow",
+        r"For tomorrow",
+        r"Tomorrow's plan",
+        r"Trade Plan for \\w+",
+    ]
+
+    TRADE_PLAN_ENDS = [
+        r"As always no crystal balls",
+        r"no guessing, no predicting",
+        r"Reacting level to level",
+    ]
+
+    def filter_content(self, content: str) -> Dict[str, str]:
+        """Return dict with filtered sections: opening_context, trade_plan, current_position, overnight_action"""
+
+        lines = content.split("\n")
+
+        def _extract_section(start_cond, end_cond=None, limit=None):
+            """Generic helper to extract a block between regex markers."""
+            capturing = False
+            collected = []
+            for line in lines:
+                if not capturing and start_cond(line):
+                    capturing = True
+                if capturing:
+                    if end_cond and end_cond(line):
+                        break
+                    collected.append(line)
+                    if limit and len(collected) >= limit:
+                        break
+            return "\n".join(collected)
+
+        # Opening context (from start until one of the OPENING_SECTION_ENDS)
+        opening_context = []
+        for line in lines:
+            if any(re.search(p, line, re.IGNORECASE) for p in self.OPENING_SECTION_ENDS):
+                break
+            opening_context.append(line)
+        opening_context = "\n".join(opening_context[:50])  # Limit size
+
+        # Trade plan section
+        def tp_start(line):
+            return any(re.search(p, line, re.IGNORECASE) for p in self.TRADE_PLAN_STARTS)
+
+        def tp_end(line):
+            return any(re.search(p, line, re.IGNORECASE) for p in self.TRADE_PLAN_ENDS)
+
+        trade_plan = _extract_section(tp_start, tp_end)
+
+        # Current position lines (grab scattered)
+        current_position_lines = [
+            ln for ln in lines if any(
+                phrase in ln.lower()
+                for phrase in [
+                    "holding my",
+                    "current position",
+                    "i am holding",
+                    "still holding",
+                    "runner",
+                    "10% long",
+                    "10% short",
+                ]
+            )
+        ]
+        current_position = "\n".join(current_position_lines)
+
+        # Overnight action summary (first 10 lines mentioning overnight etc.)
+        overnight_lines = [
+            ln
+            for ln in lines
+            if any(
+                phrase in ln.lower()
+                for phrase in [
+                    "overnight",
+                    "evening",
+                    "morning",
+                    "we opened",
+                    "heading into today",
+                    "last night",
+                    "this morning",
+                ]
+            )
+        ]
+        overnight_action = "\n".join(overnight_lines[:10])
+
+        return {
+            "opening_context": opening_context,
+            "trade_plan": trade_plan,
+            "current_position": current_position,
+            "overnight_action": overnight_action,
+        }
+
+
+class EnhancedManciniAnalyzer:
+    """Framework-based Mancini analysis (Phase 2 improvement)"""
+
+    TIER_SCORES = {
+        0: 0.85,  # Failed Breakdown
+        1: 0.70,  # Level Reclaim
+        4: 0.40,  # Breakdown short (rarely used)
+    }
+
+    FAILED_BREAKDOWN_PATTERNS = [
+        r"failed breakdown of (\d+)",
+        r"fb of (\d+)",
+        r"flush (\d+).*recover",
+        r"lose (\d+).*reclaim",
+    ]
+
+    LEVEL_RECLAIM_PATTERNS = [
+        r"reclaim of (\d+)",
+        r"recovery of (\d+)",
+        r"back above (\d+)",
+        r"acceptance.*(\d+)",
+    ]
+
+    def __init__(self):
+        pass
+
+    # ---- public helpers ----
+
+    def analyze(self, filtered_sections: Dict[str, str]) -> Dict[str, any]:
+        """Return structured analysis from filtered newsletter content."""
+
+        combined_text = f"{filtered_sections['opening_context']}\n{filtered_sections['trade_plan']}"
+
+        market_context = self._extract_market_context(combined_text)
+        setups = self._extract_setups(combined_text)
+        levels = self._extract_levels(combined_text)
+
+        return {
+            "market_context": market_context,
+            "setups": setups,
+            "levels": levels,
+            "current_position": filtered_sections["current_position"],
+            "overnight_action": filtered_sections["overnight_action"],
+        }
+
+    # ---- internal helpers ----
+
+    def _extract_market_context(self, text: str) -> Dict[str, str]:
+        tl = text.lower()
+
+        regime = "RANGE_BOUND"
+        if "buy dips" in tl or "buy-dips" in tl:
+            regime = "BUY_DIPS"
+        elif "sell rips" in tl or "sell-rips" in tl:
+            regime = "SELL_RIPS"
+
+        mode = "Mode2"
+        if "mode 1" in tl or "trend day" in tl:
+            mode = "Mode1"
+
+        volatility = "MODERATE"
+        if "high vol" in tl or "volatile" in tl:
+            volatility = "HIGH"
+        elif "low vol" in tl or "slow" in tl:
+            volatility = "LOW"
+
+        return {"regime": regime, "mode": mode, "volatility": volatility}
+
+    def _extract_setups(self, text: str) -> List[Dict[str, any]]:
+        setups: List[Dict[str, any]] = []
+
+        # Tier 0 – Failed Breakdowns
+        for pat in self.FAILED_BREAKDOWN_PATTERNS:
+            for m in re.finditer(pat, text, re.IGNORECASE):
+                lvl = float(m.group(1))
+                setups.append(
+                    {
+                        "tier": 0,
+                        "type": "failed_breakdown",
+                        "level": lvl,
+                        "direction": "long",
+                        "context": m.group(0),
+                        "score": self.TIER_SCORES[0],
+                    }
+                )
+
+        # Tier 1 – Level Reclaims
+        for pat in self.LEVEL_RECLAIM_PATTERNS:
+            for m in re.finditer(pat, text, re.IGNORECASE):
+                lvl = float(m.group(1))
+                setups.append(
+                    {
+                        "tier": 1,
+                        "type": "level_reclaim",
+                        "level": lvl,
+                        "direction": "long",
+                        "context": m.group(0),
+                        "score": self.TIER_SCORES[1],
+                    }
+                )
+
+        return setups
+
+    def _extract_levels(self, text: str) -> List[float]:
+        # Extract 4-digit ES levels 5000-7000
+        nums = re.findall(r"\b(\d{4})\b", text)
+        lvls = sorted({float(n) for n in nums if 5000 <= float(n) <= 7000})
+        return lvls
