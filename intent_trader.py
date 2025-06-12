@@ -18,6 +18,25 @@ import inspect
 import os
 from pathlib import Path
 
+# === Global Constants ===
+VERSION = "0.4.3"
+
+# === Trading Phases ===
+class TradingPhase(Enum):
+    PLAN = "PLAN"
+    FOCUS = "FOCUS"
+    EXECUTE = "EXECUTE"
+    MANAGE = "MANAGE"
+    REVIEW = "REVIEW"
+    COACHING = "COACHING"
+
+def phase(phase_name: str):
+    """Decorator to tag handler functions with their trading phase."""
+    def decorator(func):
+        func.phase = phase_name
+        return func
+    return decorator
+
 # === CONSTANTS ===
 
 # Position sizing defaults
@@ -829,67 +848,64 @@ class IntentTrader:
         self.handlers = self._register_handlers()
         
     def __str__(self):
-        """Display enhanced startup screen showcasing PFEMRC workflow."""
+        """String representation of the trader's current state."""
         return f"""
-╔══════════════════════════════════════════════════════════════╗
-║                    INTENT TRADER v0.4.3                     ║
-║              Plan-Focus-Execute-Manage-Review-Coach          ║
-╠══════════════════════════════════════════════════════════════╣
-║ Phase: {self.context.phase:<8} │ Mode: {self.context.mode:<6} │ P&L: ${self.context.realized_pnl:>8.2f} ║
-║ Ideas: {len(self.context.ideas):<8} │ Positions: {len(self.context.positions):<3} │ Stops: {self.context.stops_hit}/3     ║
-╚══════════════════════════════════════════════════════════════╝
-
-🎯 PLAN PHASE - Multi-Source Analysis Framework:
-
-📊 Morning Analysis:
-   • "analyze dp [paste DP morning call transcript]"
-   • "analyze mancini [paste Mancini newsletter]"
-
-🔍 Advanced Setups:
-   • "add ES mancini failed breakdown 6024 stop 6010 target 6040 6055"  
-   • "add AAPL dp focus trade entry 225 stop 223 target 235 245"
-
-⚡ Quick Commands:
-   • "create plan" → Unified trading plan with conviction scoring
-   • "show plan" → Live trading table with all setups
-   • "execute plan ES" → Trigger when ES hits Failed Breakdown
-   • "lock 75" → Mancini 75% profit lock protocol
-   • "coach" → Behavioral pattern analysis
-
-💡 Say it naturally: "Buy 100 AAPL at 225" or "ES looks ready for FB"
-
-Ready for your first analysis. What's your move?
+INTENT TRADER v0.4.3
+Plan-Focus-Execute-Manage-Review-Coach
+──────────────────────────────────────────
+Phase: {self.context.phase} │ Mode: {self.context.mode} │ P&L: ${self.context.realized_pnl:.2f}
+Ideas: {len(self.context.ideas)} │ Positions: {len(self.context.positions)} │ Stops: {self.context.stops_hit}/3
 """
     
     def _register_handlers(self) -> Dict[str, callable]:
-        """Register all command handlers."""
-        return {
+        """Register all command handlers with their phases."""
+        handlers = {
+            # PLAN Phase
             "analyze dp": self.handle_analyze_dp,
             "analyze mancini": self.handle_analyze_mancini,
             "create plan": self.handle_create_plan,
             "show plan": self.handle_show_plan,
-            "execute": self.handle_execute,
-            "positions": self.handle_positions,
-            "help": self.handle_help,
+            
+            # FOCUS Phase
             "add trade": self.handle_add_trade,
             "update prices": self.handle_update_prices,
+            
+            # EXECUTE Phase
+            "execute": self.handle_execute,
             "execute from plan": self.handle_execute_from_plan,
+            
+            # MANAGE Phase
+            "positions": self.handle_positions,
             "exit": self.handle_exit,
             "move stop": self.handle_move_stop,
             "lock profits": self.handle_lock_profits,
+            
+            # REVIEW Phase
+            "review": self.handle_review,
+            "behavioral check": self.handle_behavioral_check,
+            
+            # COACHING Phase
+            "coach": self.handle_coach,
+            
+            # Utility Handlers
+            "help": self.handle_help,
             "save": self.handle_save,
             "load": self.handle_load,
             "invalidate": self.handle_invalidate,
             "journal": self.handle_journal,
             "chart": self.handle_chart,
-            "coach": self.handle_coach,
-            "review": self.handle_review,
-            "behavioral check": self.handle_behavioral_check,
             "log moderator": self.handle_log_moderator,
             "size position": self.handle_size_position,
             "show offset": self.handle_show_offset,
-            "set offset": self.handle_set_offset,  # New handler
+            "set offset": self.handle_set_offset,
         }
+        
+        # Add phase information to each handler
+        for handler in handlers.values():
+            if not hasattr(handler, 'phase'):
+                handler.phase = "UTILITY"
+                
+        return handlers
     
     def process(self, message: str) -> str:
         """Main entry point - process any message."""
@@ -901,6 +917,11 @@ Ready for your first analysis. What's your move?
         # Route to handler
         for intent, handler in self.handlers.items():
             if intent in msg_lower:
+                # Check phase compatibility
+                if hasattr(handler, 'phase') and handler.phase != "UTILITY":
+                    if handler.phase != self.context.phase:
+                        return f"⚠️ Command not available in {self.context.phase} phase. Current phase: {self.context.phase}"
+                
                 response = handler(message)
                 
                 # Check behavioral patterns
@@ -934,234 +955,98 @@ Ready for your first analysis. What's your move?
 
     # === PLAN PHASE HANDLERS ===
     
+    @phase("PLAN")
     def handle_analyze_dp(self, message: str) -> str:
-        """Analyze DP morning call with enhanced conviction scoring."""
+        """Analyze DP morning calls with enhanced conviction scoring."""
+        response = f"""
+DP ANALYSIS
+──────────────────────────────────────────
+Phase: PLAN │ Mode: {self.context.mode} │ v0.4.3
+
+"""
+
         lines = message.split('\n')
         analysis = {
-            "bias": "NEUTRAL",
-            "ideas": [],
-            "levels": [],
-            "conviction_phrases": [],
-            "energy_summary": {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
+            'bias': 'neutral',
+            'levels': [],
+            'ideas': []
         }
         
-        all_text = message.lower()
-        levels = extract_levels(message)
-        symbols = extract_symbols(message)
-        
-        # Deduplicate symbols
-        seen_symbols = set()
-        unique_symbols = []
-        for symbol in symbols:
-            if symbol not in seen_symbols:
-                seen_symbols.add(symbol)
-                unique_symbols.append(symbol)
-        
-        # Determine bias
-        if "bullish" in all_text and any(w in all_text for w in ["above", "over", "break"]):
-            analysis["bias"] = "BULLISH"
-        elif "bearish" in all_text and any(w in all_text for w in ["below", "under", "fail"]):
-            analysis["bias"] = "BEARISH"
-        
-        # Enhanced scoring for each line
-        dp_analyzer = DPConvictionAnalyzer()
-        found_count = 0
-        
+        # Analyze each line
         for line in lines:
-            symbols_in_line = extract_symbols(line)
-            for symbol in symbols_in_line:
-                result = dp_analyzer.analyze_line(line, symbol)
-                if result['score'] is not None:
-                    idea = TradeIdea(
-                        ticker=symbol,
-                        source="dp",
-                        score=ConvictionScore(result['score'], "dp", result['label']),
-                        notes=f"Energy: {result['energy']} | Confidence: {result['confidence']:.0%}"
-                    )
-                    # Extract price if mentioned
-                    prices = extract_levels(line)
-                    if prices:
-                        idea.entry = prices[0]
-                    
-                    self.context.ideas.append(idea)
-                    analysis["ideas"].append(
-                        f"{symbol}: {result['label']} ({result['score']:.2f}) - {result['energy']} energy"
-                    )
-                    analysis["energy_summary"][result['energy']] += 1
-                    if result['score'] >= 0.90:
-                        analysis["conviction_phrases"].append(line.strip())
-                    found_count += 1
+            result = self.dp_analyzer.analyze_line(line, "")
+            if result:
+                if result.get('bias'):
+                    analysis['bias'] = result['bias']
+                if result.get('level'):
+                    analysis['levels'].append(result['level'])
+                if result.get('idea'):
+                    analysis['ideas'].append(result['idea'])
         
-        # Store analysis
-        analysis["levels"] = levels
-        self.context.dp_analysis = analysis
-        self.context.phase = "PLAN"
+        # Sort levels
+        levels = sorted(analysis['levels'])
         
         # Format response
-        response = "=== DP ANALYSIS ===\n"
         response += f"Bias: {analysis['bias']}\n"
         response += f"Key Levels: {', '.join(map(str, levels[:5]))}\n"
-        response += f"\nFound {found_count} trade ideas from {len(unique_symbols)} tickers\n"
-        response += f"Energy Summary: HIGH={analysis['energy_summary']['HIGH']}, MEDIUM={analysis['energy_summary']['MEDIUM']}, LOW={analysis['energy_summary']['LOW']}\n"
         
-        if self.context.ideas:
-            response += "\nCONVICTION SCORING (with energy/confidence):\n"
-            
-            # Group by conviction level
-            exceptional = [i for i in self.context.ideas if i.source == "dp" and i.score.score >= 0.90]
-            high = [i for i in self.context.ideas if i.source == "dp" and 0.70 <= i.score.score < 0.90]
-            medium = [i for i in self.context.ideas if i.source == "dp" and 0.50 <= i.score.score < 0.70]
-            
-            if exceptional:
-                response += "\nEXCEPTIONAL (0.90+) - Focus Trades:\n"
-                response += format_plan_table(exceptional)
-                    
-            if high:
-                response += "\nHIGH (0.70-0.89) - Full Size:\n"
-                response += format_plan_table(high)
-                    
-            if medium:
-                response += "\nMEDIUM (0.50-0.69) - Half Size:\n"
-                response += format_plan_table(medium)
-                    
-        response += "\n-> Next: 'analyze mancini' or 'create plan'"
+        if analysis['ideas']:
+            response += "\nTrade Ideas:\n"
+            for idea in analysis['ideas']:
+                response += f"• {idea}\n"
+        
         return response
     
+    @phase("PLAN")
     def handle_analyze_mancini(self, message: str) -> str:
-        """Enhanced Mancini analysis with smart content filtering and tier-based scoring."""
+        """Analyze the Mancini newsletter with enhanced framework."""
+        response_lines = [f"""
+MANCINI ANALYSIS
+──────────────────────────────────────────
+Phase: PLAN │ Mode: {self.context.mode} │ v0.4.3
+
+"""]
 
         # Phase 1: Filter to actionable content
-        content_filter = ManciniContentFilter()
-        filtered = content_filter.filter_content(message)
-
-        # Phase 2: Structured analysis with enhanced framework
-        analyzer = EnhancedManciniAnalyzer()
-        analysis = analyzer.analyze(filtered)
-
-        # Update context mode from market context
-        self.context.mode = analysis["market_context"].get("mode", "Mode2")
-
-        # Convert setups to TradeIdea objects with enhanced framework
-        for setup in analysis["setups"]:
-            # Skip duplicate idea for same level & tier
-            existing = next((i for i in self.context.ideas if i.source == "mancini" and getattr(i, "tier_level", None) == setup["tier"] and i.entry == setup["level"]), None)
-            if existing:
-                continue
-
-            # Map tier to familiar label for legacy compatibility
-            tier_label_map = {0: "FB", 1: "Reclaim", 4: "Breakdown"}
-            label = tier_label_map.get(setup["tier"], f"Tier {setup['tier']}")
-
-            idea = TradeIdea(
-                ticker="ES",
-                source="mancini",
-                score=ConvictionScore(setup["score"], "mancini", label),
-                entry=setup["level"],
-                notes=setup["context"],
-                tier_level=setup["tier"],
-                volatility_context=analysis["market_context"].get("volatility"),
-                # Enhanced framework fields
-                acceptance_pattern=setup.get("acceptance_pattern"),
-                flush_target=setup.get("flush_target"),
-                test_count=setup.get("test_count"),
-                mancini_confidence=setup.get("mancini_confidence", "MEDIUM"),
-            )
-            self.context.ideas.append(idea)
-
-        # Add tomorrow's trade ideas
-        for setup in analysis.get("tomorrow_setups", []):
-            # Skip if we already have this level
-            existing = next((i for i in self.context.ideas if i.source == "mancini" and i.entry == setup["level"]), None)
-            if existing:
-                continue
-
-            # Create label based on source section
-            label = setup["type"].upper()
-            if setup["type"] == "bull_case":
-                label = "BULL_CALL"
-            elif setup["type"] == "bear_case":
-                label = "BEAR_CALL"
-
-            idea = TradeIdea(
-                ticker="ES",
-                source="mancini",
-                score=ConvictionScore(setup["score"], "mancini", label),
-                entry=setup["level"],
-                notes=setup["context"],
-                tier_level=setup["tier"],
-                type=setup["direction"],
-                volatility_context=analysis["market_context"].get("volatility"),
-                mancini_confidence=setup["mancini_confidence"],
-            )
-            self.context.ideas.append(idea)
-
-        # Store full analysis for later reference
+        filtered = self.mancini_filter.filter_content(message)
+        
+        # Phase 2: Analyze with framework
+        analysis = self.mancini_analyzer.analyze(filtered)
+        
+        # Store analysis
         self.context.mancini_analysis = analysis
-
+        
         # Build response grouped by tiers
-        response_lines = ["=== MANCINI ANALYSIS (FILTERED) ==="]
+        response_lines.append("Market Context:")
         mc = analysis["market_context"]
-        response_lines.append(f"Market Regime: {mc['regime']} | Mode: {mc['mode']} | Vol: {mc['volatility']}")
-
-        # Tomorrow's Trade Ideas (New Section)
-        tomorrow_setups = analysis.get("tomorrow_setups", [])
-        if tomorrow_setups:
-            response_lines.append("\n=== TOMORROW'S TRADE IDEAS ===")
-            
-            # Group by type
-            bull_calls = [s for s in tomorrow_setups if s["type"] == "bull_case"]
-            bear_calls = [s for s in tomorrow_setups if s["type"] == "bear_case"]
-            summary_levels = [s for s in tomorrow_setups if s["type"] == "summary_level"]
-            
-            if bull_calls:
-                response_lines.append("\nBULL CASE:")
-                for s in bull_calls:
-                    response_lines.append(f"• ES {s['level']:.0f} LONG (score {s['score']:.2f})")
-            
-            if bear_calls:
-                response_lines.append("\nBEAR CASE:")
-                for s in bear_calls:
-                    response_lines.append(f"• ES {s['level']:.0f} SHORT (score {s['score']:.2f})")
-            
-            if summary_levels:
-                response_lines.append("\nKEY LEVELS:")
-                for s in summary_levels:
-                    response_lines.append(f"• ES {s['level']:.0f} (score {s['score']:.2f})")
-
-        # Regular Tier Analysis
-        tier0 = [s for s in analysis["setups"] if s["tier"] == 0]
-        tier1 = [s for s in analysis["setups"] if s["tier"] == 1]
-        tier4 = [s for s in analysis["setups"] if s["tier"] == 4]
-
-        if tier0:
-            response_lines.append("\nTIER 0: FAILED BREAKDOWNS (Core Edge)")
-            for s in tier0:
-                response_lines.append(f"• ES {s['level']:.0f} FB (score {s['score']:.2f})")
-
-        if tier1:
-            response_lines.append("\nTIER 1: LEVEL RECLAIMS")
-            for s in tier1:
-                response_lines.append(f"• ES {s['level']:.0f} Reclaim (score {s['score']:.2f})")
-
-        if tier4:
-            response_lines.append("\nTIER 4: BREAKDOWN SHORT")
-            for s in tier4:
-                response_lines.append(f"• ES {s['level']:.0f} Breakdown (score {s['score']:.2f})")
-
-        if analysis.get("current_position"):
-            response_lines.append("\nCURRENT POSITION SUMMARY:")
-            response_lines.append(analysis["current_position"][:200] + ("..." if len(analysis["current_position"]) > 200 else ""))
-
-        response_lines.append("\n-> Next: 'create plan' to merge with DP analysis")
-
+        response_lines.append(f"Regime: {mc['regime']} | Mode: {mc['mode']} | Vol: {mc['volatility']}")
+        
+        # Add filtered content
+        response_lines.append("\nTOMORROW'S IDEAS")
+        response_lines.append("──────────────────────────────────────────")
+        response_lines.append("Phase: PLAN → FOCUS\n")
+        
+        # Add trade ideas
+        for tier, setups in analysis["setups"].items():
+            if setups:
+                response_lines.append(f"\nTier {tier} Setups:")
+                for setup in setups:
+                    response_lines.append(f"• {setup['ticker']}: {setup['type']} @ {setup['level']}")
+                    if setup.get('notes'):
+                        response_lines.append(f"  {setup['notes']}")
+        
         return "\n".join(response_lines)
     
+    @phase("PLAN")
     def handle_create_plan(self, message: str) -> str:
         """Create or refresh the daily trading plan as a single unified table."""
-        # Simply render everything currently in context.ideas using the new unified table.
-        response = "=== DAILY TRADING PLAN ===\n"
-        response += f"Phase: PLAN -> FOCUS\n"
-        response += f"Market Mode: {self.context.mode}\n\n"
+        response = f"""
+DAILY PLAN
+──────────────────────────────────────────
+Phase: PLAN → FOCUS
+Mode: {self.context.mode}
+
+"""
 
         response += format_plan_table(self.context.ideas)
 
@@ -1177,6 +1062,7 @@ Ready for your first analysis. What's your move?
 
         return response
     
+    @phase("PLAN")
     def handle_show_plan(self, message: str) -> str:
         """Show the current trading plan with optional status filtering."""
         msg_lower = message.lower()
@@ -1190,8 +1076,13 @@ Ready for your first analysis. What's your move?
         elif "done" in msg_lower:
             status_filter = [TradeStatus.CLOSED, TradeStatus.STOPPED, TradeStatus.INVALIDATED]
         
-        response = "=== CURRENT TRADING PLAN ===\n"
-        response += f"Phase: {self.context.phase} | Mode: {self.context.mode}\n\n"
+        filter_text = status_filter.value if status_filter else 'ALL'
+        response = f"""
+TRADING PLAN
+──────────────────────────────────────────
+Phase: {self.context.phase} │ Mode: {self.context.mode} │ Filter: {filter_text}
+
+"""
         
         # Filter ideas if requested
         ideas_to_show = self.context.ideas
@@ -1215,6 +1106,7 @@ Ready for your first analysis. What's your move?
 
     # === CORE HANDLERS (kept readable and clear) ===
     
+    @phase("EXECUTE")
     def handle_execute(self, message: str) -> str:
         """Execute a trade with source validation."""
         pattern = r'(?:buy|sell|long|short|add)\s+(?:(\d+)\s+)?([A-Z]+)(?:\s+@\s+|\s+at\s+)?([\d.]+)?'
@@ -1273,238 +1165,7 @@ Ready for your first analysis. What's your move?
         
         return response
     
-    def handle_positions(self, message: str) -> str:
-        """Show current positions with P&L."""
-        if not self.context.positions:
-            return "No open positions"
-            
-        response = "=== OPEN POSITIONS ===\n"
-        total_unrealized = 0
-        
-        # Table format
-        response += "| TICKER | SOURCE | SIDE | QTY@PRICE | CURRENT | P&L | % |\n"
-        response += "|--------|--------|------|-----------|---------|-----|-----|\n"
-        
-        for pos in self.context.positions:
-            response += f"| {pos.ticker:<6} | {pos.source:<6} | {pos.side:<4} | "
-            response += f"{pos.qty}@{pos.entry:.2f} | {pos.current:.2f} | "
-            response += f"${pos.pnl:+.2f} | {pos.pnl_pct:+.1f}% |\n"
-            total_unrealized += pos.pnl
-        
-        response += f"\nUnrealized: ${total_unrealized:+.2f}\n"
-        response += f"Realized: ${self.context.realized_pnl:.2f}\n"
-        response += f"Total P&L: ${self.context.realized_pnl + total_unrealized:+.2f}"
-        
-        return response
-    
-    def handle_help(self, message: str) -> str:
-        """Show help information."""
-        return """
-=== INTENT TRADER v0.4.3 HELP ===
-
-WORKFLOW:
-1. PLAN: Analyze DP/Mancini → Create plan
-2. FOCUS: Review focus trades → Add setups
-3. EXECUTE: Update prices → Execute when at entry
-4. MANAGE: Monitor positions → Exit at targets/stops
-5. REVIEW: Check performance → Get coaching
-
-KEY COMMANDS:
-📊 Planning & Analysis:
-• analyze dp [morning call text]
-• analyze mancini [newsletter text]
-• create plan
-• show plan / waiting / active / done
-
-💹 Trade Execution:
-• add AAPL dp focus trade entry 225 stop 223 target 230 235
-• update prices AAPL 225.50 TSLA 420.69
-• execute plan AAPL (when price hits entry)
-• buy AAPL / sell AAPL
-
-📈 Position Management:
-• positions
-• move stop AAPL 224
-• lock 75 (Mancini trades)
-• exit AAPL / exit all
-
-📝 Utilities:
-• save / load
-• journal [note]
-• chart [description]
-• coach / review
-
-Say commands naturally - I understand variations!
-"""
-
-    # === REMAINING HANDLERS (simplified but functional) ===
-    
-    def handle_add_trade(self, message: str) -> str:
-        """Add a new trade idea with proper source routing and full parameters."""
-        parts = message.split()
-        if len(parts) < 2:
-            return "Usage: add AAPL dp love this setup entry 225 stop 223 target 230 235"
-            
-        ticker = parts[1].upper()
-        
-        # Parse parameters using shared helper
-        entry = stop = target1 = target2 = None
-        msg_lower = message.lower()
-        
-        entry_match = re.search(r'entry\s+([\d.]+)', msg_lower)
-        if entry_match:
-            entry = float(entry_match.group(1))
-            
-        stop_match = re.search(r'stop\s+([\d.]+)', msg_lower)
-        if stop_match:
-            stop = float(stop_match.group(1))
-            
-        # Handle multiple target formats
-        target_matches = re.findall(r'target\s+([\d.]+)', msg_lower)
-        if target_matches:
-            target1 = float(target_matches[0])
-            if len(target_matches) > 1:
-                target2 = float(target_matches[1])
-            else:
-                # Check for "target 230 235" format
-                target_pattern = r'target\s+([\d.]+)\s+([\d.]+)'
-                double_target = re.search(target_pattern, msg_lower)
-                if double_target:
-                    target1 = float(double_target.group(1))
-                    target2 = float(double_target.group(2))
-        
-        # Quick add mode
-        if len(parts) == 2:
-            idea = TradeIdea(
-                ticker=ticker,
-                source="dp",
-                score=ConvictionScore(0.60, "dp", "Medium"),
-                entry=entry,
-                stop=stop,
-                target1=target1,
-                target2=target2 if target2 else target1
-            )
-            self.context.ideas.append(idea)
-            return f"✅ Quick added {ticker} (DP/Medium)"
-        
-        # Determine source
-        if parts[2].lower() in ["dp", "mancini"]:
-            source = parts[2].lower()
-            phrase = " ".join(parts[3:]).lower()
-        else:
-            if ticker in ["ES", "NQ", "RTY", "YM"]:
-                source = "mancini"
-            elif ticker == "SPX":
-                return "❌ SPX requires source: 'add SPX dp focus trade' or 'add SPX mancini fb'"
-            else:
-                source = "dp"
-            phrase = " ".join(parts[2:]).lower()
-        
-        # Score based on source
-        if source == "dp":
-            for conv_phrase, score, label in DP_CONVICTION_MAP:
-                if conv_phrase in phrase:
-                    # Check for existing idea
-                    existing = next((i for i in self.context.ideas if i.ticker == ticker and i.source == "dp"), None)
-                    if existing:
-                        existing.score = ConvictionScore(score, "dp", label)
-                        existing.entry = entry or existing.entry
-                        existing.stop = stop or existing.stop
-                        existing.target1 = target1 or existing.target1
-                        existing.target2 = target2 or existing.target2
-                        return f"✅ Updated {ticker} from DP: {label} ({score:.2f})"
-                    
-                    idea = TradeIdea(
-                        ticker=ticker,
-                        source="dp",
-                        score=ConvictionScore(score, "dp", label),
-                        entry=entry,
-                        stop=stop,
-                        target1=target1,
-                        target2=target2 if target2 else target1
-                    )
-                    self.context.ideas.append(idea)
-                    response = f"✅ Added {ticker} from DP: {label} ({score:.2f})"
-                    if entry and stop and target1:
-                        response += f"\nEntry: ${entry:.2f} | Stop: ${stop:.2f} | T1: ${target1:.2f}"
-                        if target2:
-                            response += f" | T2: ${target2:.2f}"
-                    return response
-                    
-        elif source == "mancini":
-            for setup_phrase, (score, label) in MANCINI_SETUP_MAP.items():
-                if setup_phrase in phrase:
-                    # Check for existing idea
-                    existing = next((i for i in self.context.ideas if i.ticker == ticker and i.source == "mancini"), None)
-                    if existing:
-                        existing.score = ConvictionScore(score, "mancini", label)
-                        existing.entry = entry or existing.entry
-                        existing.stop = stop or existing.stop
-                        existing.target1 = target1 or existing.target1
-                        existing.target2 = target2 or existing.target2
-                        return f"✅ Updated {ticker} from Mancini: {label} ({score:.2f})"
-                    
-                    idea = TradeIdea(
-                        ticker=ticker,
-                        source="mancini",
-                        score=ConvictionScore(score, "mancini", label),
-                        entry=entry,
-                        stop=stop,
-                        target1=target1,
-                        target2=target2 if target2 else target1
-                    )
-                    self.context.ideas.append(idea)
-                    response = f"✅ Added {ticker} from Mancini: {label} ({score:.2f})"
-                    if entry and stop and target1:
-                        response += f"\nEntry: ${entry:.2f} | Stop: ${stop:.2f} | T1: ${target1:.2f}"
-                        if target2:
-                            response += f" | T2: ${target2:.2f}"
-                    return response
-        
-        return f"❌ No matching pattern found for '{phrase}'"
-
-    # === REMAINING HANDLERS (keeping readability over compression) ===
-    
-    def handle_update_prices(self, message: str) -> str:
-        """Update current prices for trade ideas."""
-        parts = message.split()[2:]  # Skip 'update prices'
-        
-        if not parts or len(parts) % 2 != 0:
-            return "Format: update prices AAPL 227.50 TSLA 185.20"
-        
-        updated = []
-        for i in range(0, len(parts), 2):
-            ticker = parts[i].upper()
-            try:
-                price = float(parts[i + 1])
-                if price <= 0:
-                    return f"❌ Price for {ticker} must be positive"
-                
-                # Update all ideas for this ticker
-                ideas_updated = 0
-                for idea in self.context.ideas:
-                    if idea.ticker == ticker:
-                        idea.current_price = price
-                        ideas_updated += 1
-                
-                # Also update positions
-                for pos in self.context.positions:
-                    if pos.ticker == ticker:
-                        pos.current = price
-                        
-                if ideas_updated > 0:
-                    updated.append(f"{ticker} → ${price:.2f}")
-                    
-            except ValueError:
-                return f"Invalid price for {ticker}"
-        
-        if updated:
-            response = "Updated prices: " + ", ".join(updated)
-            response += "\n\n" + self.handle_show_plan("")
-            return response
-        
-        return "No matching tickers found to update"
-    
+    @phase("EXECUTE")
     def handle_execute_from_plan(self, message: str) -> str:
         """Execute a trade from the plan when it hits entry."""
         parts = message.split()
@@ -1572,7 +1233,38 @@ Say commands naturally - I understand variations!
         response += "\n" + self.handle_show_plan("")
         return response
 
-    # Keep remaining handlers clear and simple
+    # === MANAGE PHASE HANDLERS ===
+    
+    @phase("MANAGE")
+    def handle_positions(self, message: str) -> str:
+        """Show current positions with P&L."""
+        if not self.context.positions:
+            return "No open positions"
+            
+        total_pnl = sum(p.pnl for p in self.context.positions)
+        response = f"""
+POSITIONS
+──────────────────────────────────────────
+Count: {len(self.context.positions)} │ P&L: ${total_pnl:.2f} │ Phase: {self.context.phase}
+
+"""
+        
+        # Table format
+        response += "| TICKER | SOURCE | SIDE | QTY@PRICE | CURRENT | P&L | % |\n"
+        response += "|--------|--------|------|-----------|---------|-----|-----|\n"
+        
+        for pos in self.context.positions:
+            response += f"| {pos.ticker:<6} | {pos.source:<6} | {pos.side:<4} | "
+            response += f"{pos.qty}@{pos.entry:.2f} | {pos.current:.2f} | "
+            response += f"${pos.pnl:+.2f} | {pos.pnl_pct:+.1f}% |\n"
+        
+        response += f"\nUnrealized: ${total_pnl:+.2f}\n"
+        response += f"Realized: ${self.context.realized_pnl:.2f}\n"
+        response += f"Total P&L: ${self.context.realized_pnl + total_pnl:+.2f}"
+        
+        return response
+    
+    @phase("MANAGE")
     def handle_exit(self, message: str) -> str:
         """Exit a position."""
         if "all" in message.lower():
@@ -1630,7 +1322,7 @@ Say commands naturally - I understand variations!
             
         return response
 
-    # Additional handlers kept simple for readability
+    @phase("MANAGE")
     def handle_move_stop(self, message: str) -> str:
         """Move stop loss for a position."""
         parts = message.split()
@@ -1680,8 +1372,9 @@ Say commands naturally - I understand variations!
         
         return response
     
+    @phase("MANAGE")
     def handle_lock_profits(self, message: str) -> str:
-        """Lock 75% profits (Mancini rule)."""
+        """Lock in profits for a position."""
         symbols = extract_symbols(message)
         if not symbols:
             mancini_pos = [p for p in self.context.positions if p.source == "mancini" and p.pnl > 0]
@@ -1722,9 +1415,122 @@ Say commands naturally - I understand variations!
         
         return response
 
-    # Minimal implementations for completeness
+    # === REVIEW PHASE HANDLERS ===
+    
+    @phase("REVIEW")
+    def handle_review(self, message: str) -> str:
+        """Review trading performance and patterns."""
+        response = f"""
+REVIEW
+──────────────────────────────────────────
+Trades: {self.context.trades_completed} │ P&L: ${self.context.realized_pnl:.2f} │ Stops: {self.context.stops_hit}/3
+
+"""
+        
+        # Win rate
+        if self.context.trades_completed > 0:
+            win_rate = ((self.context.trades_completed - self.context.stops_hit) / self.context.trades_completed) * 100
+            response += f"Win Rate: {win_rate:.0f}%\n"
+            
+        # Overall assessment
+        if self.context.realized_pnl > 0:
+            response += "\n✅ Positive session - good discipline"
+        elif self.context.realized_pnl < 0:
+            response += "\n❌ Negative session - review entries"
+        else:
+            response += "\n➖ Breakeven session"
+            
+        response += "\n\n-> Ready for COACH phase"
+        self.context.phase = "COACH"
+        
+        return response
+
+    @phase("REVIEW")
+    def handle_behavioral_check(self, message: str) -> str:
+        """Check for behavioral issues in real-time."""
+        alert = self._check_behavioral_patterns()
+        if alert:
+            return alert
+        return "✅ No behavioral issues detected"
+
+    # === COACHING PHASE HANDLERS ===
+    
+    @phase("COACHING")
+    def handle_coach(self, message: str) -> str:
+        """Provide coaching feedback on trading decisions."""
+        response = f"""
+COACHING
+──────────────────────────────────────────
+Phase: {self.context.phase} │ Mode: {self.context.mode} │ Score: {self.context.plan_alignment_score}/10
+
+"""
+        # Check for revenge trading
+        if self.context.stops_hit >= 3:
+            response += "🛑 3+ stops hit - revenge trading risk HIGH\n"
+            response += "• Step away for 30 minutes\n"
+            response += "• Journal about the losses\n"
+            response += "• Return with half size only\n"
+            
+        # Check for overtrading
+        if self.context.trades_completed > 10:
+            response += "⚠️ Overtrading detected (>10 trades)\n"
+            response += "• Focus on A+ setups only\n"
+            response += "• Quality over quantity\n"
+            
+        # Check conviction discipline
+        low_conviction_trades = len([i for i in self.context.ideas if i.score.score < 0.50])
+        if low_conviction_trades > 3:
+            response += "⚠️ Taking too many low conviction trades\n"
+            response += "• Minimum 0.70 score tomorrow\n"
+            response += "• Review your focus list\n"
+            
+        return response
+
+    # === UTILITY HANDLERS ===
+    
+    def handle_help(self, message: str) -> str:
+        """Show help information."""
+        return f"""
+HELP
+──────────────────────────────────────────
+Phase: {self.context.phase} │ Mode: {self.context.mode} │ v0.4.3
+
+WORKFLOW:
+1. PLAN: Analyze DP/Mancini → Create plan
+2. FOCUS: Review focus trades → Add setups
+3. EXECUTE: Update prices → Execute when at entry
+4. MANAGE: Monitor positions → Exit at targets/stops
+5. REVIEW: Check performance → Get coaching
+
+KEY COMMANDS:
+📊 Planning & Analysis:
+• analyze dp [morning call text]
+• analyze mancini [newsletter text]
+• create plan
+• show plan / waiting / active / done
+
+💹 Trade Execution:
+• add AAPL dp focus trade entry 225 stop 223 target 230 235
+• update prices AAPL 225.50 TSLA 420.69
+• execute plan AAPL (when price hits entry)
+• buy AAPL / sell AAPL
+
+📈 Position Management:
+• positions
+• move stop AAPL 224
+• lock 75 (Mancini trades)
+• exit AAPL / exit all
+
+📝 Utilities:
+• save / load
+• journal [note]
+• chart [description]
+• coach / review
+
+Say commands naturally - I understand variations!"""
+
     def handle_save(self, message: str) -> str:
-        """Save context to JSON."""
+        """Save current trading context."""
         filename = f"trader_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
         data = asdict(self.context)
         # Convert Enums to their value for JSON serialization
@@ -1745,7 +1551,7 @@ To restore: Start new conversation with "Initialize Intent Trader with context: 
 """
     
     def handle_load(self, message: str) -> str:
-        """Load context from JSON string."""
+        """Load trading context from saved state."""
         json_match = re.search(r'(\{[\s\S]*\})', message)
         if not json_match:
             return "❌ No JSON context found. Format: load context: {paste JSON}"
@@ -1797,7 +1603,6 @@ Ready to continue trading!"""
         except Exception as e:
             return f"❌ Load failed: {str(e)}"
 
-    # Simple implementations for remaining handlers
     def handle_invalidate(self, message: str) -> str:
         """Invalidate a setup that's no longer valid."""
         symbols = extract_symbols(message)
@@ -1919,93 +1724,8 @@ Ready to continue trading!"""
         
         return response
 
-    def handle_coach(self, message: str) -> str:
-        """Provide coaching feedback."""
-        alerts = []
-        prescriptions = []
-        
-        # Check for revenge trading
-        if self.context.stops_hit >= 3:
-            alerts.append("🛑 3+ stops hit - revenge trading risk HIGH")
-            prescriptions.append("• Step away for 30 minutes")
-            prescriptions.append("• Journal about the losses")
-            prescriptions.append("• Return with half size only")
-            
-        # Check for overtrading
-        if self.context.trades_completed > 10:
-            alerts.append("⚠️ Overtrading detected (>10 trades)")
-            prescriptions.append("• Focus on A+ setups only")
-            prescriptions.append("• Quality over quantity")
-            
-        # Check conviction discipline
-        low_conviction_trades = len([i for i in self.context.ideas if i.score.score < 0.50])
-        if low_conviction_trades > 3:
-            alerts.append("⚠️ Taking too many low conviction trades")
-            prescriptions.append("• Minimum 0.70 score tomorrow")
-            prescriptions.append("• Review your focus list")
-            
-        response = "=== COACH FEEDBACK ===\n"
-        
-        if alerts:
-            response += "\nBEHAVIORAL ALERTS:\n"
-            for alert in alerts:
-                response += f"{alert}\n"
-                
-            response += "\nPRESCRIPTIONS:\n"
-            for rx in prescriptions:
-                response += f"{rx}\n"
-        else:
-            response += "\n✅ Good discipline today!\n"
-            response += "• Keep following your plan\n"
-            response += "• Size up on focus trades\n"
-            response += "• Trust your analysis\n"
-            
-        # Tomorrow's focus
-        response += "\nTOMORROW'S FOCUS:\n"
-        response += "1. Wait for A+ setups only\n"
-        response += "2. Respect source-based rules\n"
-        response += "3. Honor stops without revenge\n"
-        response += "4. Journal after each trade\n"
-        
-        self.context.phase = "PLAN"
-        response += "\n-> Ready for next session (Phase: PLAN)"
-        
-        return response
-
-    def handle_review(self, message: str) -> str:
-        """Review session performance."""
-        response = "=== SESSION REVIEW ===\n"
-        response += f"Completed Trades: {self.context.trades_completed}\n"
-        response += f"Realized P&L: ${self.context.realized_pnl:.2f}\n"
-        response += f"Stops Hit: {self.context.stops_hit}\n"
-        
-        # Win rate
-        if self.context.trades_completed > 0:
-            win_rate = ((self.context.trades_completed - self.context.stops_hit) / self.context.trades_completed) * 100
-            response += f"Win Rate: {win_rate:.0f}%\n"
-            
-        # Overall assessment
-        if self.context.realized_pnl > 0:
-            response += "\n✅ Positive session - good discipline"
-        elif self.context.realized_pnl < 0:
-            response += "\n❌ Negative session - review entries"
-        else:
-            response += "\n➖ Breakeven session"
-            
-        response += "\n\n-> Ready for COACH phase"
-        self.context.phase = "COACH"
-        
-        return response
-
-    def handle_behavioral_check(self, message: str) -> str:
-        """Real-time behavioral check."""
-        alert = self._check_behavioral_patterns()
-        if alert:
-            return alert
-        return "✅ No behavioral issues detected"
-
     def handle_log_moderator(self, message: str) -> str:
-        """Log moderator trades: log mod DP bought AAPL 225"""
+        """Log moderator trades."""
         parts = message.lower().split()
         if len(parts) < 6:
             return "Format: log mod DP bought AAPL 225"
@@ -2049,9 +1769,12 @@ Ready to continue trading!"""
             
         best_idea = max(ideas, key=lambda i: i.score.score)
         
-        response = f"=== POSITION SIZE: {ticker} ===\n"
-        response += f"Source: {best_idea.source.upper()}\n"
-        response += f"Score: {best_idea.score.score:.2f} ({best_idea.score.label})\n\n"
+        response = f"""
+SIZE: {ticker}
+──────────────────────────────────────────
+Source: {best_idea.source.upper()} │ Score: {best_idea.score.score:.2f} ({best_idea.score.label})
+
+"""
         
         # Use shared sizing logic
         base_size = size_for_score(best_idea.score.score, self.context.mode)
@@ -2169,7 +1892,13 @@ def say(message: str) -> str:
 
 # Example usage for AI assistants
 def demo():
-    """Demonstration of how to use IntentTrader with an AI Assistant."""
+    """Run a demo of the Intent Trader."""
+    print("""
+DEMO
+──────────────────────────────────────────
+Running example commands...
+
+""")
     
     # Initialize trader
     t = initialize_trader()
@@ -2184,8 +1913,6 @@ def demo():
         "move stop AAPL 224.00",
         "exit AAPL"
     ]
-    
-    print("=== INTENT TRADER DEMO ===\n")
     
     for msg in examples:
         print(f"You: {msg}")
