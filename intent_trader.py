@@ -21,6 +21,38 @@ from pathlib import Path
 # === Global Constants ===
 VERSION = "0.4.3"
 
+# === Market Hours ===
+def get_market_hours() -> Dict[str, Dict[str, str]]:
+    """Return market hours for different instrument types."""
+    return {
+        "futures": {
+            "open": "03:00",
+            "close": "16:00", 
+            "timezone": "EST"
+        },
+        "stocks": {
+            "open": "09:30",
+            "close": "16:00",
+            "timezone": "EST" 
+        }
+    }
+
+def is_market_open(ticker: str) -> bool:
+    """Check if market is open for given ticker."""
+    now = datetime.now()
+    current_time = now.strftime("%H:%M")
+    
+    # Determine market type
+    if ticker in ["ES", "NQ", "RTY", "YM"]:
+        market_open = "03:00"
+    else:
+        market_open = "09:30"
+    
+    market_close = "16:00"
+    
+    # Simple time comparison (assumes EST)
+    return market_open <= current_time <= market_close
+
 # === Trading Phases ===
 class TradingPhase(Enum):
     PLAN = "PLAN"
@@ -887,6 +919,12 @@ Ideas: {len(self.context.ideas)} │ Positions: {len(self.context.positions)} �
             # COACHING Phase
             "coach": self.handle_coach,
             
+            # Enhanced Status Management
+            "update status": self.handle_update_status,
+            "mark": self.handle_update_status,  # Alias
+            "actionable": self.handle_show_plan,  # Show market-open trades
+            "auto update": self.update_trade_statuses,
+            
             # Utility Handlers
             "help": self.handle_help,
             "save": self.handle_save,
@@ -952,6 +990,36 @@ Ideas: {len(self.context.ideas)} │ Positions: {len(self.context.positions)} �
                 return "⚠️ COACH ALERT: All positions are low conviction. Raise your standards!"
                 
         return None
+
+    def update_trade_statuses(self) -> str:
+        """Update trade statuses based on market conditions and price action."""
+        updates = []
+        
+        for idea in self.context.ideas:
+            old_status = idea.status
+            
+            # Auto-invalidate if market closed and still waiting
+            if not is_market_open(idea.ticker) and idea.status == TradeStatus.WAITING:
+                # Only invalidate if significant time has passed
+                idea_age = datetime.now() - datetime.fromisoformat(idea.timestamp)
+                if idea_age.days >= 1:
+                    idea.status = TradeStatus.MISSED
+                    updates.append(f"{idea.ticker}: waiting → missed (market closed)")
+            
+            # Check if price triggered entry
+            if (idea.status == TradeStatus.WAITING and 
+                idea.entry and idea.current_price):
+                
+                if idea.type == "long" and idea.current_price <= idea.entry:
+                    idea.status = TradeStatus.TRIGGERED
+                    updates.append(f"{idea.ticker}: waiting → triggered @ ${idea.current_price:.2f}")
+                elif idea.type == "short" and idea.current_price >= idea.entry:
+                    idea.status = TradeStatus.TRIGGERED  
+                    updates.append(f"{idea.ticker}: waiting → triggered @ ${idea.current_price:.2f}")
+        
+        if updates:
+            return "📊 STATUS UPDATES:\n" + "\n".join(f"• {u}" for u in updates)
+        return "No status updates needed"
 
     # === PLAN PHASE HANDLERS ===
     
@@ -1064,19 +1132,27 @@ Mode: {self.context.mode}
     
     @phase("PLAN")
     def handle_show_plan(self, message: str) -> str:
-        """Show the current trading plan with optional status filtering."""
+        """Show the current trading plan with market-aware status filtering."""
         msg_lower = message.lower()
+        
+        # Auto-update statuses first
+        status_updates = self.update_trade_statuses()
         
         # Determine filter
         status_filter = None
         if "waiting" in msg_lower:
             status_filter = TradeStatus.WAITING
-        elif "active" in msg_lower:
-            status_filter = TradeStatus.TRIGGERED
+        elif "active" in msg_lower or "triggered" in msg_lower:
+            status_filter = TradeStatus.TRIGGERED  
+        elif "actionable" in msg_lower:
+            # Show only trades where market is open
+            status_filter = "market_open"
         elif "done" in msg_lower:
-            status_filter = [TradeStatus.CLOSED, TradeStatus.STOPPED, TradeStatus.INVALIDATED]
+            status_filter = [TradeStatus.CLOSED, TradeStatus.STOPPED, TradeStatus.INVALIDATED, TradeStatus.MISSED]
         
-        filter_text = status_filter.value if status_filter else 'ALL'
+        filter_text = "ACTIONABLE" if status_filter == "market_open" else (
+            status_filter.value if hasattr(status_filter, 'value') else 'ALL')
+        
         response = f"""
 TRADING PLAN
 ──────────────────────────────────────────
@@ -1084,25 +1160,72 @@ Phase: {self.context.phase} │ Mode: {self.context.mode} │ Filter: {filter_te
 
 """
         
-        # Filter ideas if requested
+        # Filter ideas
         ideas_to_show = self.context.ideas
-        if status_filter:
+        if status_filter == "market_open":
+            ideas_to_show = [i for i in self.context.ideas 
+                            if i.status == TradeStatus.WAITING and is_market_open(i.ticker)]
+        elif status_filter:
             if isinstance(status_filter, list):
                 ideas_to_show = [i for i in self.context.ideas if i.status in status_filter]
             else:
                 ideas_to_show = [i for i in self.context.ideas if i.status == status_filter]
         
-        # Use central table helper
-        response += format_plan_table(ideas_to_show)
+        # Enhanced table with market status
+        response += self._format_plan_table_with_market_status(ideas_to_show)
         
-        # Add action hints
+        # Show status updates if any
+        if "No status updates" not in status_updates:
+            response += f"\n{status_updates}\n"
+        
+        # Add market-aware action hints
         response += "\nACTIONS:\n"
-        response += "• 'update prices AAPL 225 TSLA 420' - Update current prices\n"
+        response += "• 'actionable' - Show only trades where market is open\n"
+        response += "• 'update prices AAPL 225 TSLA 420' - Update current prices\n" 
         response += "• 'execute plan AAPL' - Execute when price hits entry\n"
-        response += "• 'invalidate AAPL' - Remove setup that's no longer valid\n"
-        response += "• 'waiting/active/done' - Filter by status\n"
+        response += "• 'invalidate AAPL broke support' - Mark setup invalid\n"
+        response += "• 'waiting/triggered/done' - Filter by status\n"
         
         return response
+
+    def _format_plan_table_with_market_status(self, ideas: List[TradeIdea]) -> str:
+        """Enhanced table format with market status indicators."""
+        if not ideas:
+            return "No trade ideas match this filter.\n"
+
+        # Sort by market open status, then score
+        def sort_key(idea):
+            market_open = is_market_open(idea.ticker)
+            return (not market_open, -idea.score.score, idea.ticker)
+        
+        ideas_sorted = sorted(ideas, key=sort_key)
+
+        table_lines = [
+            "| TICKER | SOURCE | TIER | SCORE | STATUS | MKT | ENTRY | STOP | T1 | T2 |",
+            "|--------|--------|------|-------|--------|-----|-------|------|----|----|", 
+        ]
+
+        for idea in ideas_sorted:
+            tier_str = str(getattr(idea, "tier_level", "-")) if idea.source == "mancini" else "-"
+            entry_str = f"{idea.entry:.2f}" if idea.entry else "---"
+            stop_str = f"{idea.stop:.2f}" if idea.stop else "---" 
+            t1_str = f"{idea.target1:.2f}" if idea.target1 else "---"
+            t2_str = f"{idea.target2:.2f}" if idea.target2 else "---"
+            
+            # Market status indicator
+            mkt_status = "🟢" if is_market_open(idea.ticker) else "🔴"
+            
+            # Status with color coding
+            status_display = idea.status.value
+            if idea.status == TradeStatus.WAITING and is_market_open(idea.ticker):
+                status_display = f"⚡{status_display}"
+
+            table_lines.append(
+                f"| {idea.ticker:<6} | {idea.source:<6} | {tier_str:<4} | {idea.score.score:.2f} | "
+                f"{status_display:<10} | {mkt_status:<3} | {entry_str:<5} | {stop_str:<5} | {t1_str:<5} | {t2_str:<5} |"
+            )
+
+        return "\n".join(table_lines) + "\n"
 
     # === CORE HANDLERS (kept readable and clear) ===
     
@@ -1814,6 +1937,42 @@ Try commands like:
 • show plan
 • buy AAPL
 • positions"""
+
+    def handle_update_status(self, message: str) -> str:
+        """Update status of trade ideas manually."""
+        # Parse: "update status AAPL triggered" or "mark TSLA invalidated"
+        parts = message.lower().split()
+        
+        if len(parts) < 3:
+            return "Format: 'update status AAPL triggered' or 'mark AAPL invalidated'"
+        
+        ticker = None
+        new_status = None
+        
+        # Extract ticker and status from various formats
+        for i, part in enumerate(parts):
+            if part.upper() in [s.upper() for s in extract_symbols(" ".join(parts))]:
+                ticker = part.upper()
+            elif part in ['waiting', 'triggered', 'invalidated', 'closed', 'missed']:
+                new_status = TradeStatus(part)
+        
+        if not ticker or not new_status:
+            return "❌ Could not parse ticker and status. Try: 'mark AAPL invalidated'"
+        
+        # Find and update idea(s)
+        updated = []
+        for idea in self.context.ideas:
+            if idea.ticker == ticker:
+                old_status = idea.status
+                idea.status = new_status
+                updated.append(f"{ticker}: {old_status.value} → {new_status.value}")
+        
+        if updated:
+            response = f"✅ STATUS UPDATED:\n" + "\n".join(f"• {u}" for u in updated) + "\n"
+            response += "\n" + self.handle_show_plan("")
+            return response
+        else:
+            return f"❌ No trade ideas found for {ticker}"
 
     def handle_show_offset(self, message: str) -> str:
         """Show the current ES-SPX offset and its status."""
