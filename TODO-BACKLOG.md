@@ -49,12 +49,15 @@ The Intent Trader MVP is 100% complete and production-ready. All 15 requirements
 
 
 # BACKLOG OF NEW IDEAS - TO BE INTEGRATED
-- Keep as single file or refactor to multiple files. research best practices via AI.
-- Trading charter
-- Capital amount and sizing
-- parameterize the system (e.g. chart colors, capital)
+
+- As a stock trader i want to review the conviction, confidence, sentiment, and energy settings, to move into parameters so i can easily manage them separately from code.
+- As a stock trader i want to move capital amount and sizing rules into parameters, so i can easily manage them separately from code.
+- As a user i want to add classifications to trade ideas once the market opens at 3:00a (earlier for Mancini's futures ideas; Labels are waiting, triggered, invalidated, closed, other), so that i can more easily focus and execute profitable trade ideas.
+- As a user i want to parameterize the chart analysis system (e.g. chart colors, sma's, pivot point indicators, etc.) so i can easily manage them separately from code.
+- As a stock trade i want to add functionality to clean DPs morning call transcript (tickers, names, analyst names, company names to tickers, typos, inconsistent formatting, blatantly incorrect pricing levels), so i can easily manage them separately from code.
+- As a stock trader i want to update the app to implement market direction analysis to implement wyckoff market modes, so i may better understand the price action.
+- As a stock trader i want to import x.com posts from @AdamMancini4 on ES_F, so i can get intraday updates on trade plans and trade idea execution status.
+
 - Process for how to get regular price updates into the app (e.g. hourly reminder)
-- Momentum trading rules bullish > 8 & 21 SMA on 2m
-- Clean DPs transcript - tickers, names, company names to tickers, frequent errors.
+
 -  today’s premarket news flow and “most active”/“biggest movers” lists found via financial news sites (Investing.com, Barrons, Yahoo, etc.) using a web lookup
-- 
