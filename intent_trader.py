@@ -850,7 +850,7 @@ class IntentTrader:
     def __str__(self):
         """String representation of the trader's current state."""
         return f"""
-INTENT TRADER v0.4.3
+INTENT TRADER v{VERSION}
 Plan-Focus-Execute-Manage-Review-Coach
 ──────────────────────────────────────────
 Phase: {self.context.phase} │ Mode: {self.context.mode} │ P&L: ${self.context.realized_pnl:.2f}
@@ -961,7 +961,7 @@ Ideas: {len(self.context.ideas)} │ Positions: {len(self.context.positions)} �
         response = f"""
 DP ANALYSIS
 ──────────────────────────────────────────
-Phase: PLAN │ Mode: {self.context.mode} │ v0.4.3
+Phase: PLAN │ Mode: {self.context.mode} │ v{VERSION}
 
 """
 
@@ -1003,7 +1003,7 @@ Phase: PLAN │ Mode: {self.context.mode} │ v0.4.3
         response_lines = [f"""
 MANCINI ANALYSIS
 ──────────────────────────────────────────
-Phase: PLAN │ Mode: {self.context.mode} │ v0.4.3
+Phase: PLAN │ Mode: {self.context.mode} │ v{VERSION}
 
 """]
 
@@ -1493,7 +1493,7 @@ Phase: {self.context.phase} │ Mode: {self.context.mode} │ Score: {self.conte
         return f"""
 HELP
 ──────────────────────────────────────────
-Phase: {self.context.phase} │ Mode: {self.context.mode} │ v0.4.3
+Phase: {self.context.phase} │ Mode: {self.context.mode} │ v{VERSION}
 
 WORKFLOW:
 1. PLAN: Analyze DP/Mancini → Create plan
@@ -1931,9 +1931,9 @@ if __name__ == "__main__":
         print("Interactive mode detected. Use demo() to see examples.")
     else:
         # If someone runs this file directly
-        print("""
+        print(f"""
 +------------------------------------------------+
-|  Intent Trader v0.4.3 - AI Assistant           |
+|  Intent Trader v{VERSION} - AI Assistant           |
 |                                                |
 |  This version is designed for AI assistants.   |
 |  For interactive use, import and use:          |
