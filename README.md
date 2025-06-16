@@ -1,7 +1,7 @@
 # Intent Trader - AI-Native Trading Assistant
 
 **Version:** 0.4.3  
-**Date:** 2024-06-12  
+**Date:** 2024-03-19  
 **Author:** Simon Plant  
 **License:** MIT
 
@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Test Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen.svg)](test_intent_trader.py)
 
-An AI-native trading assistant that runs entirely within AI chat applications, providing structured trading workflow with persistent memory across messages. No installation needed - just start chatting!
+An AI-native trading assistant that enforces the complete PFEMRC (Plan-Focus-Execute-Manage-Review-Coach) framework for systematic trading. Runs entirely within AI chat applications with persistent memory across messages. No installation needed - just start chatting!
 
 ## 📋 Table of Contents
 - [What This Is](#what-this-is)
@@ -26,21 +26,61 @@ An AI-native trading assistant that runs entirely within AI chat applications, p
 
 ## What This Is
 
-**Intent Trader turns AI into a systematic trading assistant** that:
-- Remembers all your positions and P&L
-- Scores trades using YOUR systems (DP/Mancini)
-- Tracks behavioral patterns and coaches you
-- Maintains context throughout your trading day
+**Intent Trader is a PFEMRC-enforcing trading assistant** that:
+- **PLAN**: Scores trades using YOUR systems (DP/Mancini)
+- **FOCUS**: Knows when markets are open (futures vs stocks)
+- **EXECUTE**: Manages trade statuses automatically
+- **MANAGE**: Tracks positions and P&L in real-time
+- **REVIEW**: Analyzes chart patterns and momentum
+- **COACH**: Tracks behavioral patterns and moderates activity
 
 **This is NOT a Python app you install** - it runs inside your AI of choice!
 
 ## Overview
 
-Intent Trader is a production-ready trading discipline system that:
-- **Never mixes trading methodologies** - Each trade scored 100% by its source
-- **Enforces the complete PFEMRC workflow** - PLAN → FOCUS → EXECUTE → MANAGE → REVIEW → COACH
-- **Provides real-time behavioral coaching** - Detects revenge trading, overtrading, and discipline breaks
-- **Maintains complete audit trail** - Every decision logged and recoverable
+Intent Trader implements the complete PFEMRC framework:
+
+1. **PLAN Phase**
+   - Source-based scoring (DP/Mancini)
+   - Market hours awareness
+   - Trade idea classification
+   - Pattern recognition
+   - Moderator tracking
+
+2. **FOCUS Phase**
+   - Market-open trade filtering
+   - Status management
+   - Price level tracking
+   - Entry validation
+   - Risk assessment
+
+3. **EXECUTE Phase**
+   - Position sizing by conviction
+   - Entry execution
+   - Stop placement
+   - Target setting
+   - Source validation
+
+4. **MANAGE Phase**
+   - Real-time P&L tracking
+   - Stop management
+   - Profit locking
+   - Position scaling
+   - Risk control
+
+5. **REVIEW Phase**
+   - Trade analysis
+   - Performance tracking
+   - Pattern recognition
+   - Behavioral analysis
+   - Journal management
+
+6. **COACH Phase**
+   - Behavioral pattern detection
+   - Overtrading prevention
+   - Discipline enforcement
+   - Performance coaching
+   - Plan alignment scoring
 
 ## 🚀 Quick Start (10 seconds)
 
@@ -53,7 +93,6 @@ or,
 
 `You are Intent Trader, a trading assistant using the Plan-Focus-Execute-Manage-Review-Coach framework. Use the logic and personality defined in the uploaded Python file to help with trading analysis and decisions.`
 
-
 ### What You'll See:
 ```
 === INTENT TRADER v0.4.3 INITIALIZED ===
@@ -64,9 +103,10 @@ P&L: $0.00
 
 Ready! Try these:
 • "analyze dp AAPL focus trade above 225"
-• "buy AAPL"
-• "positions"
-• "help"
+• "actionable" - Show trades where market is open
+• "mark AAPL triggered" - Update trade status
+• "positions" - View current positions
+• "help" - See all commands
 ```
 
 ## Installation
@@ -118,7 +158,7 @@ pip install -r requirements-dev.txt
 
 ```
 intent-trader/
-├── intent_trader.py      # Main application
+├── intent_trader.py      # Main application (75KB)
 ├── test_intent_trader.py # Test suite
 ├── README.md            # Documentation
 ├── CHANGELOG.md         # Version history
@@ -142,6 +182,35 @@ intent-trader/
 - Context save/load functionality
 - Comprehensive help system
 
+### Market Awareness
+- Futures market hours (3:00 AM - 4:00 PM EST)
+- Stock market hours (9:30 AM - 4:00 PM EST)
+- Automatic status updates
+- Market-open trade filtering
+- Visual status indicators (🟢/🔴)
+
+### Trade Management
+- Trade idea classification system
+- Automatic status transitions
+- Market-aware trade filtering
+- Manual status control
+- Enhanced plan display
+- Status-based filtering
+
+### Chart Analysis
+- Pattern recognition (bull/bear flags, triangles, etc.)
+- Traffic light momentum system (🟢/🟡/🔴)
+- Automatic trade idea generation
+- Pattern-based conviction scoring
+- Visual bias indicators
+
+### Moderator Integration
+- Real-time moderator trade logging
+- Activity tracking and analysis
+- Plan alignment scoring
+- Trade correlation tracking
+- Performance comparison
+
 ### Latest Additions (v0.4.3)
 - Chart analysis integration
 - Color schema detection
@@ -163,8 +232,8 @@ intent-trader/
 - **Language:** Python 3.6+
 - **Dependencies:** Zero (stdlib only)
 - **Response Time:** <1ms
-- **Memory Usage:** ~10MB baseline
-- **File Size:** Single 50KB Python file
+- **Memory Usage:** ~15MB baseline
+- **File Size:** Single 75KB Python file
 
 ### Key Components
 1. **Intent-Aware Assistant (IAA)**
@@ -172,6 +241,10 @@ intent-trader/
    - Pure in-memory operations
    - Natural language processing
    - Context management
+   - Market hours awareness
+   - Trade status management
+   - Pattern recognition
+   - Moderator tracking
 
 2. **Data Models**
    ```python
@@ -180,6 +253,7 @@ intent-trader/
        ticker: str
        source: str  # "dp" or "mancini"
        score: ConvictionScore
+       status: TradeStatus  # waiting, triggered, invalidated, etc.
        # ... additional fields
 
    @dataclass
@@ -206,6 +280,52 @@ intent-trader/
    - Mancini Technical Scoring (0.0-1.0)
    - Pattern Recognition
    - Behavioral Analysis
+   - Market Status Classification
+   - Trade Status Management
+   - Moderator Activity Scoring
+
+### Key Commands
+```
+# Market Awareness
+"actionable" - Show only trades where market is open
+"auto update" - Update all statuses based on market conditions
+
+# Status Management
+"mark AAPL triggered" - Manually update trade status
+"update status AAPL invalidated" - Alternative status update
+
+# Trade Management
+"analyze dp AAPL focus trade above 225" - Add trade idea
+"execute plan AAPL" - Execute when price hits entry
+"positions" - View current positions
+"exit AAPL" - Close position
+
+# Chart Analysis
+"chart AAPL bull flag above 225" - Analyze chart pattern
+"chart ES above 8 and 21" - Check momentum
+
+# Moderator Tracking
+"log mod DP bought AAPL 225" - Log moderator trade
+```
+
+### Status Management
+- **Automatic Updates**
+  - Market open/close detection
+  - Price-based triggering
+  - Stale setup invalidation
+  - Status transition tracking
+
+- **Manual Control**
+  - Status update commands
+  - Market-aware filtering
+  - Visual status indicators
+  - Enhanced plan display
+
+- **Market Integration**
+  - Futures vs stocks awareness
+  - Time-based status updates
+  - Market-open trade focus
+  - Status-based filtering
 
 ## Testing
 
